@@ -31,6 +31,7 @@ This is a keyboard firmware based on the qmk_firmware keycodes system and recrea
 
 ## Refactoring & Development Targets
 - Ble connection
+- Split keyboard (wired. Maybe ble also, but it too complicated for me now)
 - Add macros
 - Add combos
 - Tap dance
