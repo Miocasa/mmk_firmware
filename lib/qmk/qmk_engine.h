@@ -13,6 +13,12 @@
  *   - 32-bit layer state stack
  *   - QmkEngine class: scanMatrix → resolveKey → sendHID
  *
+ * Tap Dance supports all four QMK actions:
+ *   - Single tap   (count=1, pressed=false)
+ *   - Double tap   (count=2, pressed=false)
+ *   - Hold         (count=1, pressed=true)
+ *   - Tap + Hold   (count=2, pressed=true)
+ *
  * Usage in main.ino:
  *   #include "qmk_engine.h"
  *   // define keymaps[][][] and pin arrays
@@ -384,6 +390,78 @@ enum DiodeDirection : uint8_t {
 #define KC_MPRV             KC_MEDIA_PREV_TRACK
 #define KC_MEDIA_STOP       0xF6u
 #define KC_MSTP             KC_MEDIA_STOP
+#define KC_MEDIA_SELECT = 0x00AF
+#define KC_MEDIA_EJECT 0x00B0
+#define KC_MAIL 0x00B1
+#define KC_CALCULATOR 0x00B2
+#define KC_MY_COMPUTER 0x00B3
+#define KC_WWW_SEARCH 0x00B4
+#define KC_WWW_HOME 0x00B5
+#define KC_WWW_BACK 0x00B6
+#define KC_WWW_FORWARD 0x00B7
+#define KC_WWW_STOP 0x00B8
+#define KC_WWW_REFRESH 0x00B9
+#define KC_WWW_FAVORITES 0x00BA
+#define KC_MEDIA_FAST_FORWARD 0x00BB
+#define KC_MEDIA_REWIND 0x00BC
+#define KC_BRIGHTNESS_UP 0x00BD
+#define KC_BRIGHTNESS_DOWN 0x00BE
+#define KC_CONTROL_PANEL 0x00BF
+#define KC_ASSISTANT 0x00C0
+#define KC_MISSION_CONTROL 0x00C1
+#define KC_LAUNCHPAD 0x00C2
+#define KC_EXECUTE 0x0074
+#define KC_HELP 0x0075
+#define KC_MENU 0x0076
+#define KC_SELECT 0x0077
+#define KC_STOP 0x0078
+#define KC_AGAIN 0x0079
+#define KC_UNDO 0x007A
+#define KC_CUT 0x007B
+#define KC_COPY 0x007C
+#define KC_PASTE 0x007D
+#define KC_FIND 0x007E
+#define KC_KB_MUTE 0x007F
+#define KC_KB_VOLUME_UP 0x0080
+#define KC_KB_VOLUME_DOWN 0x0081
+#define KC_LOCKING_CAPS_LOCK 0x0082
+#define KC_LOCKING_NUM_LOCK 0x0083
+#define KC_LOCKING_SCROLL_LOCK 0x0084
+#define KC_KP_COMMA 0x0085
+#define KC_KP_EQUAL_AS400 0x0086
+#define KC_INTERNATIONAL_1 0x0087
+#define KC_INTERNATIONAL_2 0x0088
+#define KC_INTERNATIONAL_3 0x0089
+#define KC_INTERNATIONAL_4 0x008A
+#define KC_INTERNATIONAL_5 0x008B
+#define KC_INTERNATIONAL_6 0x008C
+#define KC_INTERNATIONAL_7 0x008D
+#define KC_INTERNATIONAL_8 0x008E
+#define KC_INTERNATIONAL_9 0x008F
+#define KC_LANGUAGE_1 0x0090
+#define KC_LANGUAGE_2 0x0091
+#define KC_LANGUAGE_3 0x0092
+#define KC_LANGUAGE_4 0x0093
+#define KC_LANGUAGE_5 0x0094
+#define KC_LANGUAGE_6 0x0095
+#define KC_LANGUAGE_7 0x0096
+#define KC_LANGUAGE_8 0x0097
+#define KC_LANGUAGE_9 0x0098
+#define KC_ALTERNATE_ERASE 0x0099
+#define KC_SYSTEM_REQUEST 0x009A
+#define KC_CANCEL 0x009B
+#define KC_CLEAR 0x009C
+#define KC_PRIOR 0x009D
+#define KC_RETURN 0x009E
+#define KC_SEPARATOR 0x009F
+#define KC_OUT 0x00A0
+#define KC_OPER 0x00A1
+#define KC_CLEAR_AGAIN 0x00A2
+#define KC_CRSEL 0x00A3
+#define KC_EXSEL 0x00A4
+#define KC_SYSTEM_POWER 0x00A5
+#define KC_SYSTEM_SLEEP 0x00A6
+#define KC_SYSTEM_WAKE 0x00A7
 
 // US ANSI shifted aliases
 #define KC_TILDE        LSFT(KC_GRAVE)
@@ -519,6 +597,89 @@ enum DiodeDirection : uint8_t {
 #define MOUSE_ACL1_MUL 4
 #define MOUSE_ACL2_MUL 16
 
+
+enum alias {
+    // Alias
+    KC_BRMD    = KC_SCROLL_LOCK,
+    KC_BRK     = KC_PAUSE,
+    KC_BRMU    = KC_PAUSE,
+    KC_P1      = KC_KP_1,
+    KC_P2      = KC_KP_2,
+    KC_P3      = KC_KP_3,
+    KC_P4      = KC_KP_4,
+    KC_P5      = KC_KP_5,
+    KC_P6      = KC_KP_6,
+    KC_P7      = KC_KP_7,
+    KC_P8      = KC_KP_8,
+    KC_P9      = KC_KP_9,
+    KC_P0      = KC_KP_0,
+    KC_EXEC    = KC_EXECUTE,
+    KC_SLCT    = KC_SELECT,
+    KC_AGIN    = KC_AGAIN,
+    KC_PSTE    = KC_PASTE,
+    KC_LCAP    = KC_LOCKING_CAPS_LOCK,
+    KC_LNUM    = KC_LOCKING_NUM_LOCK,
+    KC_LSCR    = KC_LOCKING_SCROLL_LOCK,
+    KC_PCMM    = KC_KP_COMMA,
+    KC_INT1    = KC_INTERNATIONAL_1,
+    KC_INT2    = KC_INTERNATIONAL_2,
+    KC_INT3    = KC_INTERNATIONAL_3,
+    KC_INT4    = KC_INTERNATIONAL_4,
+    KC_INT5    = KC_INTERNATIONAL_5,
+    KC_INT6    = KC_INTERNATIONAL_6,
+    KC_INT7    = KC_INTERNATIONAL_7,
+    KC_INT8    = KC_INTERNATIONAL_8,
+    KC_INT9    = KC_INTERNATIONAL_9,
+    KC_LNG1    = KC_LANGUAGE_1,
+    KC_LNG2    = KC_LANGUAGE_2,
+    KC_LNG3    = KC_LANGUAGE_3,
+    KC_LNG4    = KC_LANGUAGE_4,
+    KC_LNG5    = KC_LANGUAGE_5,
+    KC_LNG6    = KC_LANGUAGE_6,
+    KC_LNG7    = KC_LANGUAGE_7,
+    KC_LNG8    = KC_LANGUAGE_8,
+    KC_LNG9    = KC_LANGUAGE_9,
+    KC_ERAS    = KC_ALTERNATE_ERASE,
+    KC_SYRQ    = KC_SYSTEM_REQUEST,
+    KC_CNCL    = KC_CANCEL,
+    KC_CLR     = KC_CLEAR,
+    KC_PRIR    = KC_PRIOR,
+    KC_RETN    = KC_RETURN,
+    KC_SEPR    = KC_SEPARATOR,
+    KC_CLAG    = KC_CLEAR_AGAIN,
+    KC_CRSL    = KC_CRSEL,
+    KC_EXSL    = KC_EXSEL,
+    KC_PWR     = KC_SYSTEM_POWER,
+    KC_SLEP    = KC_SYSTEM_SLEEP,
+    KC_WAKE    = KC_SYSTEM_WAKE,
+    KC_MSEL    = 0x00AF, // KC_MEDIA_SELECT,
+    KC_EJCT    = KC_MEDIA_EJECT,
+    KC_CALC    = KC_CALCULATOR,
+    KC_MYCM    = KC_MY_COMPUTER,
+    KC_WSCH    = KC_WWW_SEARCH,
+    KC_WHOM    = KC_WWW_HOME,
+    KC_WBAK    = KC_WWW_BACK,
+    KC_WFWD    = KC_WWW_FORWARD,
+    KC_WSTP    = KC_WWW_STOP,
+    KC_WREF    = KC_WWW_REFRESH,
+    KC_WFAV    = KC_WWW_FAVORITES,
+    KC_MFFD    = KC_MEDIA_FAST_FORWARD,
+    KC_MRWD    = KC_MEDIA_REWIND,
+    KC_BRIU    = KC_BRIGHTNESS_UP,
+    KC_BRID    = KC_BRIGHTNESS_DOWN,
+    KC_CPNL    = KC_CONTROL_PANEL,
+    KC_ASST    = KC_ASSISTANT,
+    KC_MCTL    = KC_MISSION_CONTROL,
+    KC_LPAD    = KC_LAUNCHPAD,
+    KC_LOPT    = KC_LEFT_ALT,
+    KC_LCMD    = KC_LEFT_GUI,
+    KC_LWIN    = KC_LEFT_GUI,
+    KC_ROPT    = KC_RIGHT_ALT,
+    KC_ALGR    = KC_RIGHT_ALT,
+    KC_RCMD    = KC_RIGHT_GUI,
+    KC_RWIN    = KC_RIGHT_GUI,
+};
+
 // Keycode family checks
 // IS_BASIC covers 0x00-0xCC and 0xE0-0xFF (excludes mouse range 0xCD-0xDF)
 #define IS_BASIC(kc)        ((kc) < 0x00CDu || ((kc) > 0x00DFu && (kc) < 0x0100u))
@@ -567,10 +728,6 @@ static inline uint8_t qk_mods_to_hid(uint16_t kc) {
 }
 
 // ── Mouse report ─────────────────────────────────────────────────────────────
-//   Filled when a QK_MOUSE_* keycode is active.
-//   buttons : bitmask, bit 0 = BTN1 … bit 7 = BTN8
-//   x, y    : cursor delta  [-127..127]
-//   v, h    : wheel delta   [-127..127]  (v=vertical, h=horizontal)
 struct MouseReport {
     uint8_t buttons;
     int8_t  x, y;
@@ -602,46 +759,185 @@ struct TapHoldState {
     bool      active;
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// §9  Tap Dance  —  corrected QMK-compatible implementation
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Four actions exactly matching QMK:
+//
+//   count=1, pressed=false  →  single tap   (tap and release within term)
+//   count=2, pressed=false  →  double tap   (two taps within term)
+//   count=1, pressed=true   →  hold         (held beyond term)
+//   count=2, pressed=true   →  tap + hold   (tap once, then hold on 2nd press)
+//
+// Timer rules:
+//   • Restarted on every press  → detects hold (key held longer than term)
+//   • Restarted on every release → detects inter-tap gap (no 2nd tap arrived)
+//
+// ── Usage example ────────────────────────────────────────────────────────────
+//
+//   enum { TD_ESC_CAPS, TD_COUNT };
+//
+//   void td_esc_caps_finished(TapDanceState *s, void *) {
+//       switch (s->count) {
+//           case 1:
+//               if (s->pressed) { /* hold  → maybe enable layer */ }
+//               else            { s->resolved_kc = KC_ESC; }
+//               break;
+//           case 2:
+//               s->resolved_kc = KC_CAPS;
+//               break;
+//       }
+//   }
+//
+//   static TapDanceEntry td_entries[TD_COUNT] = {
+//       [TD_ESC_CAPS] = ACTION_TAP_DANCE_FN(td_esc_caps_finished),
+//   };
+//
+//   // In setup():
+//   engine.setTapDance(td_entries, TD_COUNT);
+//
+//   // In keymap:
+//   TD(TD_ESC_CAPS)
+//
+// ── Built-in helpers ─────────────────────────────────────────────────────────
+//
+//   // Simple: tap=KC_A, double-tap=KC_B
+//   static TapDanceDoubleData my_td_data = { KC_A, KC_B };
+//   ACTION_TAP_DANCE_DOUBLE(&my_td_data)
+//
 // ─────────────────────────────────────────────────────────────────────────────
-/** Macros for easier initialization **/
+
+#define QK_TAP_DANCE     0xF500u
+#define TD(i)            ((uint16_t)(QK_TAP_DANCE | ((i) & 0xFFu)))
+#define IS_TAP_DANCE(kc) (((kc) & 0xFF00u) == QK_TAP_DANCE)
+#define TD_INDEX(kc)     ((uint8_t)((kc) & 0xFFu))
+#define TAP_DANCE_TERM_MS 200u
+
+// ── TapDanceState ─────────────────────────────────────────────────────────────
+//   Passed to every callback. The callback reads count/pressed to decide
+//   the action, and writes resolved_kc when the result is a plain keycode.
+struct TapDanceState {
+    uint8_t  count;        // taps counted so far (1-based)
+    bool     pressed;      // key is physically held when on_dance_finished fires
+    bool     finished;     // internal: dance has been resolved
+    bool     interrupted;  // another key was pressed before the term expired
+    uint32_t timer;        // timestamp of last press or release event
+    uint16_t resolved_kc;  // set by on_dance_finished; used as the output keycode
+};
+
+using TapDanceFn = void (*)(TapDanceState *, void *);
+
+// ── TapDanceEntry ─────────────────────────────────────────────────────────────
+//   Mirrors QMK's action_tap_dance_t.
+//   on_each_tap      — optional; called immediately on every tap press
+//   on_dance_finished — called once the dance resolves (timeout, interrupt, or hold)
+//   on_dance_reset    — called after finished; use to clean up any side-effects
+//   user_data        — forwarded to every callback
+//   term_ms          — per-entry override; 0 = use engine TAP_DANCE_TERM
+struct TapDanceEntry {
+    TapDanceFn on_each_tap;
+    TapDanceFn on_dance_finished;
+    TapDanceFn on_dance_reset;
+    void      *user_data;
+    uint32_t   term_ms;
+};
+
+// ── Constructor macros (QMK naming) ──────────────────────────────────────────
+#define ACTION_TAP_DANCE_FN(fn) \
+    { nullptr, (fn), nullptr, nullptr, 0 }
+
+#define ACTION_TAP_DANCE_FN_ADVANCED(each_fn, finished_fn, reset_fn) \
+    { (each_fn), (finished_fn), (reset_fn), nullptr, 0 }
+
+#define ACTION_TAP_DANCE_FN_ADVANCED_WITH_STATE(each_fn, finished_fn, reset_fn, ud) \
+    { (each_fn), (finished_fn), (reset_fn), (void *)(ud), 0 }
+
+// Legacy alias kept for compatibility
+#define TAP_DANCE_FN(fn) ACTION_TAP_DANCE_FN(fn)
+
+// ── Built-in: double-tap dance ────────────────────────────────────────────────
+//   tap → kc1,  double-tap → kc2
+//   hold → kc1 held,  tap+hold → kc2 held
+struct TapDanceDoubleData {
+    uint16_t kc_tap;
+    uint16_t kc_dtap;
+};
+
+static void td_double_finished(TapDanceState *s, void *ud) {
+    const TapDanceDoubleData *d = (const TapDanceDoubleData *)ud;
+    s->resolved_kc = (s->count >= 2) ? d->kc_dtap : d->kc_tap;
+}
+
+#define ACTION_TAP_DANCE_DOUBLE(data_ptr) \
+    { nullptr, _td_double_finished, nullptr, (void *)(data_ptr), 0 }
+
+// ── Internal per-slot state ───────────────────────────────────────────────────
+//   active           — slot is in use
+//   hold_active      — dance resolved as hold; key is still physically pressed;
+//                      resolved_kc is kept in the report until physical release
+//   tap_emit_pending — dance resolved as tap (not hold); resolved_kc will be
+//                      injected into the report for exactly one buildReport cycle
+struct TapDanceActive {
+    uint8_t       entry_index;
+    uint8_t       row, col;
+    TapDanceState state;
+    bool          active;
+    bool          hold_active;      // hold: key still pressed, kc in report
+    bool          tap_emit_pending; // tap:  inject kc into report once
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 #define MAKE_QMK_ENGINE(km, rp, cp, dir) \
-    QmkEngine<sizeof(rp)/sizeof(rp[0]), sizeof(cp)/sizeof(cp[0]), LAYER_COUNT> engine(km, rp, cp, dir)
+    QmkEngine<sizeof(rp)/sizeof(rp[0]), sizeof(cp)/sizeof(cp[0]), LAYER_COUNT> \
+    engine(km, rp, cp, dir)
 
 template<uint8_t ROWS, uint8_t COLS, uint8_t LAYERS>
 class QmkEngine {
 public:
-    // Pointer to the keymap defined by the user
     const uint16_t (*keymaps)[ROWS][COLS];
     const uint8_t  *rowPins;
     const uint8_t  *colPins;
     const DiodeDirection diodeDirection;
 
-    // Tap-hold threshold (ms)
-    uint32_t TAP_HOLD_MS = 200;
+    uint32_t TAP_HOLD_MS    = 200;
+    uint32_t TAP_DANCE_TERM = TAP_DANCE_TERM_MS;
 
     QmkEngine(const uint16_t (*km)[ROWS][COLS],
               const uint8_t *rp,
               const uint8_t *cp,
-              const DiodeDirection dir = ROW_TO_COL
-              )
-        : keymaps(km), rowPins(rp), colPins(cp),
-        diodeDirection(dir)
+              DiodeDirection dir = ROW_TO_COL)
+        : keymaps(km), rowPins(rp), colPins(cp), diodeDirection(dir)
     {
-        memset(&layerState, 0, sizeof(layerState));
-        memset(matrixPrev, 0, sizeof(matrixPrev));
+        memset(&layerState,   0, sizeof(layerState));
+        memset(matrixPrev,    0, sizeof(matrixPrev));
         memset(matrixCurrent, 0, sizeof(matrixCurrent));
-        memset(tapHold, 0, sizeof(tapHold));
+        memset(pressedKey,    0, sizeof(pressedKey));
+        memset(tapHold,       0, sizeof(tapHold));
+        memset(tdActive,      0, sizeof(tdActive));
         defaultLayer = 0;
-        layerState |= (1u << defaultLayer);
+        layerState  |= (1u << defaultLayer);
+        tdEntries    = nullptr;
+        tdCount      = 0;
+    }
+
+    void setTapDance(TapDanceEntry *entries, uint8_t count) {
+        tdEntries = entries;
+        tdCount   = count;
     }
 
     // ── Layer API ─────────────────────────────────────────────────────────────
 
     void layerOn(uint8_t l)  { if (l < QMK_MAX_LAYERS) layerState |=  (1u << l); }
-    void layerOff(uint8_t l) { if (l < QMK_MAX_LAYERS) layerState &= ~(1u << l); if (l == defaultLayer) layerState |= (1u << defaultLayer); }
+    void layerOff(uint8_t l) {
+        if (l < QMK_MAX_LAYERS) layerState &= ~(1u << l);
+        if (l == defaultLayer)  layerState |=  (1u << defaultLayer);
+    }
     void layerToggle(uint8_t l) { if (layerState & (1u << l)) layerOff(l); else layerOn(l); }
-    void layerGoto(uint8_t l) { layerState = (1u << l); defaultLayer = l; }
+    void layerGoto(uint8_t l)   { layerState = (1u << l); defaultLayer = l; }
     void setDefaultLayer(uint8_t l) { layerOff(defaultLayer); defaultLayer = l; layerOn(l); }
+
     uint8_t highestActiveLayer() const {
         for (int8_t l = QMK_MAX_LAYERS - 1; l >= 0; --l)
             if (layerState & (1u << l)) return (uint8_t)l;
@@ -649,14 +945,10 @@ public:
     }
     uint32_t getLayerState() const { return layerState; }
 
-    // ── Resolve an arbitrary keycode (no row/col, no tap-hold) ───────────────
-    //   Used by encoder: pass the keycode, get back ResolvedKey.
-    //   Consumer usage IDs (HID_USAGE_CONSUMER_*) pass through as-is via
-    //   the .consumer field when kc >= 0x0080 and not a basic/mod key.
+    // ── resolveRaw — arbitrary keycode, no row/col ────────────────────────────
     ResolvedKey resolveRaw(uint16_t kc) const {
-        ResolvedKey out = {0, 0, 0};
+        ResolvedKey out = {0, 0, 0, {}};
         if (kc == KC_NO || kc == KC_TRNS) return out;
-
         if (IS_MOD_KEY(kc)) {
             out.hid_mods    = qk_mods_to_hid(kc);
             out.hid_keycode = QK_MODS_GET_BASIC_KEYCODE(kc);
@@ -676,77 +968,43 @@ public:
             case KC_MEDIA_STOP:       out.consumer = HID_USAGE_CONSUMER_STOP;             return out;
             default: break;
         }
-        // Raw consumer usage ID (HID_USAGE_CONSUMER_* passed directly)
-        if (kc >= 0x0080u && !IS_MOUSE(kc)) { out.consumer = kc; return out; }
-        // Mouse keycodes
-        if (IS_MOUSE(kc)) {
-            switch (kc) {
-                case QK_MOUSE_CURSOR_UP:    out.mouse.y = -MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_CURSOR_DOWN:  out.mouse.y =  MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_CURSOR_LEFT:  out.mouse.x = -MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_CURSOR_RIGHT: out.mouse.x =  MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_WHEEL_UP:     out.mouse.v =  MOUSE_WHEEL_STEP; break;
-                case QK_MOUSE_WHEEL_DOWN:   out.mouse.v = -MOUSE_WHEEL_STEP; break;
-                case QK_MOUSE_WHEEL_LEFT:   out.mouse.h = -MOUSE_WHEEL_STEP; break;
-                case QK_MOUSE_WHEEL_RIGHT:  out.mouse.h =  MOUSE_WHEEL_STEP; break;
-                default:
-                    if (kc >= QK_MOUSE_BUTTON_1 && kc <= QK_MOUSE_BUTTON_8)
-                        out.mouse.buttons |= (1u << (kc - QK_MOUSE_BUTTON_1));
-                    break;
-            }
-            return out;
-        }
-        // Plain HID keycode
-        if (IS_BASIC(kc)) { out.hid_keycode = (uint8_t)kc; return out; }
+        if (IS_MOUSE(kc))  { resolveMouse(kc, out); return out; }
+        if (kc >= 0x0080u) { out.consumer = kc;     return out; }
+        if (IS_BASIC(kc))  { out.hid_keycode = (uint8_t)kc; return out; }
         return out;
     }
 
-    // ── Key resolution: walk layer stack top-down, skip KC_TRNS ──────────────
+    // ── resolveKeycode — walk layer stack top-down ────────────────────────────
     uint16_t resolveKeycode(uint8_t row, uint8_t col) const {
         for (int8_t l = QMK_MAX_LAYERS - 1; l >= 0; --l) {
             if (!(layerState & (1u << l))) continue;
             if (l >= LAYERS) continue;
             uint16_t kc = keymaps[l][row][col];
-            if (kc == KC_TRNS) continue;
-            return kc;
+            if (kc != KC_TRNS) return kc;
         }
         return KC_NO;
     }
 
-    // ── Matrix scan (active-low, pull-up) ────────────────────────────────────
-    //   Returns true if matrix changed.
+    // ── Matrix scan ───────────────────────────────────────────────────────────
     bool scanMatrix() {
         bool changed = false;
-        uint32_t now = millis(); // не используется здесь, но оставляем для совместимости
-
         if (diodeDirection == ROW_TO_COL) {
-            // === Оригинальное поведение (Row drives, Col reads) ===
             for (uint8_t r = 0; r < ROWS; ++r) {
                 digitalWrite(rowPins[r], LOW);
                 delayMicroseconds(5);
-
                 for (uint8_t c = 0; c < COLS; ++c) {
-                    bool pressed = (digitalRead(colPins[c]) == LOW);
-                    if (pressed != matrixCurrent[r][c]) {
-                        matrixCurrent[r][c] = pressed;
-                        changed = true;
-                    }
+                    bool p = (digitalRead(colPins[c]) == LOW);
+                    if (p != matrixCurrent[r][c]) { matrixCurrent[r][c] = p; changed = true; }
                 }
                 digitalWrite(rowPins[r], HIGH);
             }
-        }
-        else { // COL_TO_ROW
-            // === Обратное направление (Col drives, Row reads) ===
+        } else {
             for (uint8_t c = 0; c < COLS; ++c) {
                 digitalWrite(colPins[c], LOW);
                 delayMicroseconds(5);
-
                 for (uint8_t r = 0; r < ROWS; ++r) {
-                    bool pressed = (digitalRead(rowPins[r]) == LOW);
-                    if (pressed != matrixCurrent[r][c]) {   // 注意: всё равно [row][col]
-                        matrixCurrent[r][c] = pressed;
-                        changed = true;
-                    }
+                    bool p = (digitalRead(rowPins[r]) == LOW);
+                    if (p != matrixCurrent[r][c]) { matrixCurrent[r][c] = p; changed = true; }
                 }
                 digitalWrite(colPins[c], HIGH);
             }
@@ -755,26 +1013,32 @@ public:
     }
 
     // ── NKRO report ───────────────────────────────────────────────────────────
-    //   mods   : HID modifier byte (8 bits, one per modifier key)
-    //   bitmap : 256-bit keycode presence bitmap (32 bytes)
-    //            bit N = HID keycode N is currently pressed
-    //            modifier keycodes 0xE0-0xE7 are in mods, not bitmap
     struct NkroReport {
         uint8_t mods;
         uint8_t bitmap[32];
-
         bool operator==(const NkroReport &o) const {
             return mods == o.mods && memcmp(bitmap, o.bitmap, 32) == 0;
         }
         bool operator!=(const NkroReport &o) const { return !(*this == o); }
     };
 
-    // ── Process all key events, update layer state, fill NKRO HID report ──────
-    //   Call this after debounce feeds matrixCurrent[][].
+    // ── buildReport ───────────────────────────────────────────────────────────
     //
-    //   out          : NKRO keyboard report (mods + 32-byte bitmap)
-    //   out_mouse    : mouse report (buttons, x, y, v, h)
-    //   out_consumer : consumer usage ID (0 = none)
+    //  Pass 1: detect press/release edges
+    //    • On press of a non-TD key  → interrupt any pending (unresolved) TD
+    //    • On press of a TD key      → increment tap count, restart timer
+    //    • On release of a TD key    → restart inter-tap timer (don't resolve yet)
+    //    • On release of a hold TD   → clear hold_active slot
+    //
+    //  Pass 2: tick timers
+    //    • tap-hold: fire hold when threshold exceeded while pressed
+    //    • tap-dance: fire on_dance_finished when term exceeded
+    //                 either pressed (hold) or not (taps done)
+    //
+    //  Pass 3: collect active keys
+    //    • Skip TD keycodes — output comes from hold_active / tap_emit_pending
+    //    • Emit hold_active TD resolved_kc while key held
+    //    • Emit tap_emit_pending TD resolved_kc for exactly one cycle
     //
     void buildReport(NkroReport &out, MouseReport &out_mouse, uint16_t &out_consumer) {
         out.mods     = 0;
@@ -784,180 +1048,357 @@ public:
 
         uint32_t now = millis();
 
-        // ── Pass 1: handle MO/TG/TO/DF on press/release edges ─────────────
+        // ── Pass 1: press/release edges ───────────────────────────────────
         for (uint8_t r = 0; r < ROWS; ++r) {
             for (uint8_t c = 0; c < COLS; ++c) {
                 bool cur  = matrixCurrent[r][c];
                 bool prev = matrixPrev[r][c];
                 if (cur == prev) continue;
 
-                uint16_t kc = resolveKeycode(r, c);
+                if (cur) {
+                    // ── Key press ──────────────────────────────────────────
+                    uint16_t kc = resolveKeycode(r, c);
+                    pressedKey[r][c] = kc;
 
-                if (cur) { // key pressed
-                    if      (IS_MOMENTARY(kc))  layerOn(QK_MOMENTARY_GET_LAYER(kc));
-                    else if (IS_TOGGLE(kc))      layerToggle(QK_TOGGLE_LAYER_GET_LAYER(kc));
-                    else if (IS_GOTO(kc))        layerGoto(QK_TO_GET_LAYER(kc));
-                    else if (IS_DEF_LAYER(kc))   setDefaultLayer(QK_DEF_LAYER_GET_LAYER(kc));
-                    else if (IS_LAYER_TAP(kc) || IS_MOD_TAP(kc)) {
-                        // start tap-hold timer
-                        startTapHold(r, c, kc, now);
+                    if (IS_TAP_DANCE(kc)) {
+                        // Don't interrupt — this IS a tap-dance press
+                        handleTdPress(r, c, kc, now);
+                    } else {
+                        // Any non-TD key interrupts pending (unresolved) TD dances
+                        interruptTapDances(now);
+
+                        if      (IS_MOMENTARY(kc)) layerOn(QK_MOMENTARY_GET_LAYER(kc));
+                        else if (IS_TOGGLE(kc))    layerToggle(QK_TOGGLE_LAYER_GET_LAYER(kc));
+                        else if (IS_GOTO(kc))      layerGoto(QK_TO_GET_LAYER(kc));
+                        else if (IS_DEF_LAYER(kc)) setDefaultLayer(QK_DEF_LAYER_GET_LAYER(kc));
+                        else if (IS_LAYER_TAP(kc) || IS_MOD_TAP(kc))
+                            startTapHold(r, c, kc, now);
                     }
-                } else { // key released
-                    if (IS_MOMENTARY(kc))        layerOff(QK_MOMENTARY_GET_LAYER(kc));
-                    else if (IS_LAYER_TAP(kc) || IS_MOD_TAP(kc)) {
+                } else {
+                    // ── Key release ────────────────────────────────────────
+                    uint16_t kc = pressedKey[r][c];
+                    pressedKey[r][c] = KC_NO;
+
+                    if (IS_TAP_DANCE(kc)) {
+                        handleTdRelease(r, c, now);
+                    } else if (IS_MOMENTARY(kc)) {
+                        layerOff(QK_MOMENTARY_GET_LAYER(kc));
+                    } else if (IS_LAYER_TAP(kc) || IS_MOD_TAP(kc)) {
                         releaseTapHold(r, c, now);
                     }
                 }
             }
         }
 
-        // Update prev
+        // Sync prev matrix
         for (uint8_t r = 0; r < ROWS; ++r)
             for (uint8_t c = 0; c < COLS; ++c)
                 matrixPrev[r][c] = matrixCurrent[r][c];
 
-        // ── Pass 2: tick tap-hold timers ──────────────────────────────────
+        // ── Pass 2: tick timers ───────────────────────────────────────────
         tickTapHold(now);
+        tickTapDance(now);
 
-        // ── Pass 3: collect active keys into NKRO bitmap + mouse report ──────
-        uint8_t mouse_accel = 1; // default speed multiplier
+        // ── Pass 3a: collect active physical keys ─────────────────────────
+        uint8_t mouse_accel = 1;
         for (uint8_t r = 0; r < ROWS; ++r) {
             for (uint8_t c = 0; c < COLS; ++c) {
                 if (!matrixCurrent[r][c]) continue;
-                uint16_t kc = resolveKeycode(r, c);
+                uint16_t kc = pressedKey[r][c];
                 if (kc == KC_NO || kc == KC_TRNS) continue;
                 if (IS_MOMENTARY(kc) || IS_TOGGLE(kc) ||
                     IS_GOTO(kc) || IS_DEF_LAYER(kc)) continue;
 
-                // Check acceleration keys first (they modify mouse speed)
                 if (kc == QK_MOUSE_ACCELERATION_0) { mouse_accel = MOUSE_ACL0_MUL; continue; }
                 if (kc == QK_MOUSE_ACCELERATION_1) { mouse_accel = MOUSE_ACL1_MUL; continue; }
                 if (kc == QK_MOUSE_ACCELERATION_2) { mouse_accel = MOUSE_ACL2_MUL; continue; }
 
-                ResolvedKey rk = resolveToHid(r, c, kc, now);
-
-                if (!rk.mouse.empty()) {
-                    // Accumulate mouse axes (multiple keys can be pressed)
-                    out_mouse.buttons |= rk.mouse.buttons;
-                    out_mouse.x = constrain((int)out_mouse.x + rk.mouse.x, -127, 127);
-                    out_mouse.y = constrain((int)out_mouse.y + rk.mouse.y, -127, 127);
-                    out_mouse.v = constrain((int)out_mouse.v + rk.mouse.v, -127, 127);
-                    out_mouse.h = constrain((int)out_mouse.h + rk.mouse.h, -127, 127);
-                } else if (rk.consumer) {
-                    out_consumer = rk.consumer;
-                } else {
-                    out.mods |= rk.hid_mods;
-                    if (rk.hid_keycode && rk.hid_keycode < 0xE0u)
-                        out.bitmap[rk.hid_keycode >> 3] |= (1u << (rk.hid_keycode & 7u));
+                // TD keys output via hold_active (see Pass 3b)
+                if (IS_TAP_DANCE(kc)) {
+                    TapDanceActive *td = findTd(r, c);
+                    if (td && td->hold_active && td->state.resolved_kc) {
+                        addResolvedToReport(resolveRaw(td->state.resolved_kc),
+                                            out, out_mouse, out_consumer);
+                    }
+                    continue;
                 }
+
+                ResolvedKey rk = resolveToHid(r, c, kc, now);
+                addResolvedToReport(rk, out, out_mouse, out_consumer);
             }
         }
-        // Apply acceleration multiplier to cursor movement
-        out_mouse.x = constrain((int)out_mouse.x * mouse_accel, -127, 127);
-        out_mouse.y = constrain((int)out_mouse.y * mouse_accel, -127, 127);
+
+        // ── Pass 3b: inject one-shot tap emissions ────────────────────────
+        //   These slots have already been physically released but resolved to
+        //   a keycode that needs exactly one report cycle to register.
+        for (uint8_t i = 0; i < TD_SLOTS; ++i) {
+            TapDanceActive &td = tdActive[i];
+            if (!td.tap_emit_pending) continue;
+            td.tap_emit_pending = false;  // consume — emit once only
+
+            if (td.state.resolved_kc) {
+                addResolvedToReport(resolveRaw(td.state.resolved_kc),
+                                    out, out_mouse, out_consumer);
+            }
+            // Slot fully done — was already marked inactive in finishTd
+        }
+
+        // Apply mouse acceleration
+        out_mouse.x = (int8_t)constrain((int)out_mouse.x * mouse_accel, -127, 127);
+        out_mouse.y = (int8_t)constrain((int)out_mouse.y * mouse_accel, -127, 127);
     }
 
-    // Public matrix state — written by external debounce, read by buildReport()
+    // Public: written by external debounce
     bool matrixCurrent[ROWS][COLS]{};
 
 private:
     uint32_t layerState{};
-    uint8_t  defaultLayer;
+    uint8_t  defaultLayer{};
     bool     matrixPrev[ROWS][COLS]{};
 
-    // Up to 8 simultaneous tap-hold keys
-    static constexpr uint8_t TAP_HOLD_SLOTS = 8;
-    TapHoldState tapHold[TAP_HOLD_SLOTS]{};
+    // Stores keycode at press time — fixes MO release bug
+    uint16_t pressedKey[ROWS][COLS]{};
 
-    // ── Find free tap-hold slot ────────────────────────────────────────────
+    // ── Helper: add a ResolvedKey into the running report ─────────────────────
+    static void addResolvedToReport(const ResolvedKey &rk,
+                                    NkroReport &out,
+                                    MouseReport &out_mouse,
+                                    uint16_t &out_consumer)
+    {
+        if (!rk.mouse.empty()) {
+            out_mouse.buttons |= rk.mouse.buttons;
+            out_mouse.x = (int8_t)constrain((int)out_mouse.x + rk.mouse.x, -127, 127);
+            out_mouse.y = (int8_t)constrain((int)out_mouse.y + rk.mouse.y, -127, 127);
+            out_mouse.v = (int8_t)constrain((int)out_mouse.v + rk.mouse.v, -127, 127);
+            out_mouse.h = (int8_t)constrain((int)out_mouse.h + rk.mouse.h, -127, 127);
+        } else if (rk.consumer) {
+            out_consumer = rk.consumer;
+        } else {
+            out.mods |= rk.hid_mods;
+            if (rk.hid_keycode && rk.hid_keycode < 0xE0u)
+                out.bitmap[rk.hid_keycode >> 3] |= (1u << (rk.hid_keycode & 7u));
+        }
+    }
+
+    // ── Tap-hold ──────────────────────────────────────────────────────────────
+    static constexpr uint8_t TH_SLOTS = 8;
+    TapHoldState tapHold[TH_SLOTS]{};
+
     TapHoldState* findTapHold(uint8_t r, uint8_t c) {
-        for (uint8_t i = 0; i < TAP_HOLD_SLOTS; ++i)
+        for (uint8_t i = 0; i < TH_SLOTS; ++i)
             if (tapHold[i].active && tapHold[i].row == r && tapHold[i].col == c)
                 return &tapHold[i];
         return nullptr;
     }
     TapHoldState* freeTapHold() {
-        for (uint8_t i = 0; i < TAP_HOLD_SLOTS; ++i)
+        for (uint8_t i = 0; i < TH_SLOTS; ++i)
             if (!tapHold[i].active) return &tapHold[i];
         return nullptr;
     }
-
     void startTapHold(uint8_t r, uint8_t c, uint16_t kc, uint32_t now) {
-        TapHoldState* s = freeTapHold();
-        if (!s) return;
-        s->active     = true;
-        s->held       = false;
-        s->tapped     = false;
-        s->row        = r;
-        s->col        = c;
-        s->keycode    = kc;
-        s->press_time = now;
+        TapHoldState *s = freeTapHold(); if (!s) return;
+        s->active = true; s->held = false; s->tapped = false;
+        s->row = r; s->col = c; s->keycode = kc; s->press_time = now;
     }
-
     void releaseTapHold(uint8_t r, uint8_t c, uint32_t now) {
-        TapHoldState* s = findTapHold(r, c);
-        if (!s) return;
-        if (!s->held) s->tapped = true; // released before hold threshold → tap
+        TapHoldState *s = findTapHold(r, c); if (!s) return;
+        if (!s->held) s->tapped = true;
         s->active = false;
-        // undo layer if LT was in hold state
         if (IS_LAYER_TAP(s->keycode) && s->held)
             layerOff(QK_LAYER_TAP_GET_LAYER(s->keycode));
     }
-
     void tickTapHold(uint32_t now) {
-        for (uint8_t i = 0; i < TAP_HOLD_SLOTS; ++i) {
-            TapHoldState& s = tapHold[i];
+        for (uint8_t i = 0; i < TH_SLOTS; ++i) {
+            TapHoldState &s = tapHold[i];
             if (!s.active || s.held) continue;
             if ((now - s.press_time) >= TAP_HOLD_MS) {
                 s.held = true;
                 if (IS_LAYER_TAP(s.keycode))
                     layerOn(QK_LAYER_TAP_GET_LAYER(s.keycode));
-                // MT hold: modifier will be emitted in pass 3
             }
         }
     }
 
-    // ── Resolve a keycode to concrete HID values ───────────────────────────
+    // ── Tap dance ─────────────────────────────────────────────────────────────
+    static constexpr uint8_t TD_SLOTS = 4;
+    TapDanceActive tdActive[TD_SLOTS]{};
+    TapDanceEntry *tdEntries{};
+    uint8_t        tdCount{};
+
+    TapDanceActive* findTd(uint8_t r, uint8_t c) {
+        for (uint8_t i = 0; i < TD_SLOTS; ++i)
+            if (tdActive[i].active && tdActive[i].row == r && tdActive[i].col == c)
+                return &tdActive[i];
+        return nullptr;
+    }
+    // Also search inactive slots with tap_emit_pending (already released but
+    // still waiting to inject one report cycle)
+    TapDanceActive* findTdEmitting(uint8_t r, uint8_t c) {
+        for (uint8_t i = 0; i < TD_SLOTS; ++i)
+            if (!tdActive[i].active && tdActive[i].tap_emit_pending
+                && tdActive[i].row == r && tdActive[i].col == c)
+                return &tdActive[i];
+        return nullptr;
+    }
+    TapDanceActive* freeTd() {
+        for (uint8_t i = 0; i < TD_SLOTS; ++i)
+            if (!tdActive[i].active && !tdActive[i].tap_emit_pending
+                && !tdActive[i].hold_active)
+                return &tdActive[i];
+        return nullptr;
+    }
+
+    // Called on every press of a TD key.
+    void handleTdPress(uint8_t r, uint8_t c, uint16_t kc, uint32_t now) {
+        if (!tdEntries) return;
+        uint8_t idx = TD_INDEX(kc);
+        if (idx >= tdCount) return;
+
+        TapDanceActive *td = findTd(r, c);
+        if (!td) { td = freeTd(); if (!td) return; }
+
+        if (!td->active) {
+            // Fresh dance
+            td->active           = true;
+            td->hold_active      = false;
+            td->tap_emit_pending = false;
+            td->entry_index      = idx;
+            td->row              = r;
+            td->col              = c;
+            td->state            = {0, false, false, false, now, 0};
+        }
+
+        td->state.count++;
+        td->state.pressed = true;
+        td->state.timer   = now;  // restart: hold detection starts from this press
+
+        TapDanceEntry &e = tdEntries[idx];
+        if (e.on_each_tap) e.on_each_tap(&td->state, e.user_data);
+    }
+
+    // Called on every release of a TD key.
+    void handleTdRelease(uint8_t r, uint8_t c, uint32_t now) {
+        TapDanceActive *td = findTd(r, c);
+        if (!td) return;
+
+        if (td->hold_active) {
+            // The dance already resolved as a hold; key is now released — done.
+            td->hold_active = false;
+            td->active      = false;
+            return;
+        }
+
+        // Dance not yet resolved: key released, restart timer for inter-tap gap.
+        td->state.pressed = false;
+        td->state.timer   = now;
+        // tickTapDance will fire on_dance_finished when the inter-tap gap expires.
+    }
+
+    // Interrupt all pending (unresolved) TD dances.
+    // Called when any non-TD key is pressed.
+    void interruptTapDances(uint32_t now) {
+        for (uint8_t i = 0; i < TD_SLOTS; ++i) {
+            TapDanceActive &td = tdActive[i];
+            if (!td.active || td.state.finished || td.hold_active) continue;
+            td.state.interrupted = true;
+            finishTd(&td, now);
+        }
+    }
+
+    // Execute layer keycodes (TO/MO/TG/DF) that cannot go through HID pipeline.
+    // Returns true if kc was a layer command and was handled.
+    bool handleLayerKeycode(uint16_t kc) {
+        if (IS_GOTO(kc))       { layerGoto(QK_TO_GET_LAYER(kc));              return true; }
+        if (IS_MOMENTARY(kc))  { layerOn(QK_MOMENTARY_GET_LAYER(kc));         return true; }
+        if (IS_TOGGLE(kc))     { layerToggle(QK_TOGGLE_LAYER_GET_LAYER(kc));  return true; }
+        if (IS_DEF_LAYER(kc))  { setDefaultLayer(QK_DEF_LAYER_GET_LAYER(kc)); return true; }
+        return false;
+    }
+
+    // Resolve a dance: call callbacks, then dispatch resolved_kc.
+    //
+    // resolved_kc dispatch priority:
+    //   1. Layer command (TO/MO/TG/DF)  → execute immediately, no HID emission
+    //   2. Held HID keycode             → hold_active until physical release
+    //   3. Tapped HID keycode           → tap_emit_pending for one report cycle
+    void finishTd(TapDanceActive *td, uint32_t /*now*/) {
+        if (!td->active || td->state.finished) return;
+        td->state.finished = true;
+
+        TapDanceEntry &e = tdEntries[td->entry_index];
+        if (e.on_dance_finished) e.on_dance_finished(&td->state, e.user_data);
+        if (e.on_dance_reset)    e.on_dance_reset(&td->state,    e.user_data);
+
+        uint16_t kc = td->state.resolved_kc;
+
+        if (!kc) {
+            // Callback handled everything itself (e.g. called layerOn directly)
+            td->active = false;
+            return;
+        }
+
+        // ── Layer commands: execute now, nothing to emit over HID ────────────
+        if (handleLayerKeycode(kc)) {
+            td->state.resolved_kc = 0;
+            td->active            = false;
+            return;
+        }
+
+        // ── HID keycode ───────────────────────────────────────────────────────
+        if (td->state.pressed) {
+            // Hold or tap+hold: keep in report while key physically held
+            td->hold_active = true;
+        } else {
+            // Tap or double-tap: inject into exactly one report cycle
+            td->tap_emit_pending = true;
+            td->active           = false;
+        }
+    }
+
+    // Per-tick: expire inter-tap gap or hold threshold.
+    void tickTapDance(uint32_t now) {
+        if (!tdEntries) return;
+        for (uint8_t i = 0; i < TD_SLOTS; ++i) {
+            TapDanceActive &td = tdActive[i];
+            if (!td.active || td.state.finished || td.hold_active) continue;
+
+            TapDanceEntry &e    = tdEntries[td.entry_index];
+            uint32_t       term = e.term_ms ? e.term_ms : TAP_DANCE_TERM;
+
+            if ((now - td.state.timer) >= term) {
+                // Timer expired.
+                //   pressed=true  → key has been held beyond term → hold action
+                //   pressed=false → inter-tap gap elapsed → taps are done
+                finishTd(&td, now);
+            }
+        }
+    }
+
+    // ── resolveToHid ──────────────────────────────────────────────────────────
     ResolvedKey resolveToHid(uint8_t r, uint8_t c, uint16_t kc, uint32_t now) {
-        ResolvedKey out = {0, 0, 0};
+        ResolvedKey out = {0, 0, 0, {}};
+        (void)now;
 
-        // LT ─ layer-tap
         if (IS_LAYER_TAP(kc)) {
-            TapHoldState* s = findTapHold(r, c);
-            if (s && s->tapped) {
-                // tap: send tap keycode
-                out.hid_keycode = QK_LAYER_TAP_GET_TAP_KEYCODE(kc);
-            }
-            // hold: layer is already on via tickTapHold; no keycode
+            TapHoldState *s = findTapHold(r, c);
+            if (s && s->tapped) out.hid_keycode = QK_LAYER_TAP_GET_TAP_KEYCODE(kc);
             return out;
         }
-
-        // MT ─ mod-tap
         if (IS_MOD_TAP(kc)) {
-            TapHoldState* s = findTapHold(r, c);
-            if (s && s->tapped) {
-                out.hid_keycode = QK_MOD_TAP_GET_TAP_KEYCODE(kc);
-            } else if (!s || s->held) {
-                out.hid_mods = mod_bits_to_hid(QK_MOD_TAP_GET_MODS(kc));
-            }
+            TapHoldState *s = findTapHold(r, c);
+            if (s && s->tapped)     out.hid_keycode = QK_MOD_TAP_GET_TAP_KEYCODE(kc);
+            else if (!s || s->held) out.hid_mods    = mod_bits_to_hid(QK_MOD_TAP_GET_MODS(kc));
             return out;
         }
-
-        // LCTL(kc) / LSFT(kc) / HYPR(kc) / MEH(kc) …
         if (IS_MOD_KEY(kc)) {
             out.hid_mods    = qk_mods_to_hid(kc);
             out.hid_keycode = QK_MODS_GET_BASIC_KEYCODE(kc);
             return out;
         }
-
-        // Standalone modifier HID codes
         if (kc >= KC_LEFT_CTRL && kc <= KC_RIGHT_GUI) {
-            uint8_t bit = 1u << (kc - KC_LEFT_CTRL);
-            out.hid_mods = bit;
+            out.hid_mods = 1u << (kc - KC_LEFT_CTRL);
             return out;
         }
-
-        // Media keys mapped to KC_ aliases
         switch (kc) {
             case KC_AUDIO_VOL_UP:     out.consumer = HID_USAGE_CONSUMER_VOLUME_INCREMENT; return out;
             case KC_AUDIO_VOL_DOWN:   out.consumer = HID_USAGE_CONSUMER_VOLUME_DECREMENT; return out;
@@ -968,32 +1409,25 @@ private:
             case KC_MEDIA_STOP:       out.consumer = HID_USAGE_CONSUMER_STOP;             return out;
             default: break;
         }
+        if (IS_BASIC(kc)) { out.hid_keycode = (uint8_t)kc; return out; }
+        if (IS_MOUSE(kc)) { resolveMouse(kc, out);         return out; }
+        return out;
+    }
 
-        // Plain basic keycode (excludes mouse range)
-        if (IS_BASIC(kc)) {
-            out.hid_keycode = (uint8_t)kc;
-            return out;
+    static void resolveMouse(uint16_t kc, ResolvedKey &out) {
+        switch (kc) {
+            case QK_MOUSE_CURSOR_UP:    out.mouse.y = -MOUSE_MOVE_STEP; break;
+            case QK_MOUSE_CURSOR_DOWN:  out.mouse.y =  MOUSE_MOVE_STEP; break;
+            case QK_MOUSE_CURSOR_LEFT:  out.mouse.x = -MOUSE_MOVE_STEP; break;
+            case QK_MOUSE_CURSOR_RIGHT: out.mouse.x =  MOUSE_MOVE_STEP; break;
+            case QK_MOUSE_WHEEL_UP:     out.mouse.v =  MOUSE_WHEEL_STEP; break;
+            case QK_MOUSE_WHEEL_DOWN:   out.mouse.v = -MOUSE_WHEEL_STEP; break;
+            case QK_MOUSE_WHEEL_LEFT:   out.mouse.h = -MOUSE_WHEEL_STEP; break;
+            case QK_MOUSE_WHEEL_RIGHT:  out.mouse.h =  MOUSE_WHEEL_STEP; break;
+            default:
+                if (kc >= QK_MOUSE_BUTTON_1 && kc <= QK_MOUSE_BUTTON_8)
+                    out.mouse.buttons |= (1u << (kc - QK_MOUSE_BUTTON_1));
+                break;
         }
-
-        // Mouse keycodes
-        if (IS_MOUSE(kc)) {
-            switch (kc) {
-                case QK_MOUSE_CURSOR_UP:    out.mouse.y = -MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_CURSOR_DOWN:  out.mouse.y =  MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_CURSOR_LEFT:  out.mouse.x = -MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_CURSOR_RIGHT: out.mouse.x =  MOUSE_MOVE_STEP; break;
-                case QK_MOUSE_WHEEL_UP:     out.mouse.v =  MOUSE_WHEEL_STEP; break;
-                case QK_MOUSE_WHEEL_DOWN:   out.mouse.v = -MOUSE_WHEEL_STEP; break;
-                case QK_MOUSE_WHEEL_LEFT:   out.mouse.h = -MOUSE_WHEEL_STEP; break;
-                case QK_MOUSE_WHEEL_RIGHT:  out.mouse.h =  MOUSE_WHEEL_STEP; break;
-                default:
-                    if (kc >= QK_MOUSE_BUTTON_1 && kc <= QK_MOUSE_BUTTON_8)
-                        out.mouse.buttons |= (1u << (kc - QK_MOUSE_BUTTON_1));
-                    break;
-            }
-            return out;
-        }
-
-        return out; // unknown → ignore
     }
 };

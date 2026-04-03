@@ -14,102 +14,43 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <keymap.hpp>
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
+
+#ifdef OLED_SSD1306_ENABLED // init ssd1306 oled
+
+#ifdef OLED_SEPARATED_TASK  // user header with oled_task_kb inside
+#include "oled.h"
+#endif
+
+#define SCREEN_WIDTH_DEFAULT 128
+#define SCREEN_HEIGHT_DEFAULT 64
+#define  SCREEN_ADDRESS_DEFAULT 0x3C
+
+#ifndef SCREEN_WIDTH
+#define SCREEN_WIDTH SCREEN_WIDTH_DEFAULT
+#endif
+
+#ifndef SCREEN_HEIGHT
+#define SCREEN_HEIGHT SCREEN_HEIGHT_DEFAULT
+#endif
+
+#ifndef SCREEN_ADDRESS
+#define SCREEN_ADDRESS SCREEN_ADDRESS_DEFAULT
+#endif
+
 
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C
+
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+#endif
+
 
 // ─── Pinout ───────────────────────────────────────────────────────────────────
 
-constexpr uint8_t rowPins[] = { D2, D1, D0 };
-constexpr uint8_t colPins[] = { D6, D5, D4 };
 
-constexpr uint8_t MATRIX_ROWS = sizeof(rowPins) / sizeof(rowPins[0]);
-constexpr uint8_t MATRIX_COLS = sizeof(colPins) / sizeof(colPins[0]);
 
-#define ENCODER_BTN_PIN D3
-#define ENCODER_A_PIN   D7
-#define ENCODER_B_PIN   D8
-
-// ─── Layers ───────────────────────────────────────────────────────────────────
-
-enum layers : uint8_t {
-    DEFAULT = 0,
-    KRITA,
-    KRITA_SECOND,
-    PIXELORAMA,
-    LAYER_COUNT
-};
-
-// ─── Keymap ───────────────────────────────────────────────────────────────────
-//
-// LAYOUT maps the physical wiring order to a logical row/col grid.
-// Your wiring: row0=[D2,D1,D0] col=[D6,D5,D4]
-// The LAYOUT macro just labels positions for readability.
-
-#define LAYOUT(k0A, k0B, k0C, \
-               k1A, k1B, k1C, \
-               k2A, k2B, k2C) \
-  { { k0A, k0B, k0C },        \
-    { k1A, k1B, k1C },        \
-    { k2A, k2B, k2C } }
-
-constexpr uint16_t PROGMEM keymaps[LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
-
-    [DEFAULT] = LAYOUT(
-        KC_1,    KC_2,     KC_3,
-        KC_4,    KC_5,     KC_6,
-        KC_7,    TO(KRITA),KC_8
-    ),
-
-    [KRITA] = LAYOUT(
-        KC_F1,   KC_F2,    KC_F3,
-        KC_F4,   KC_F5,    KC_F6,
-        KC_F7,   TO(DEFAULT),  KC_F9
-    ),
-
-    [KRITA_SECOND] = LAYOUT(
-        KC_F1,   KC_F2,    KC_F3,
-        KC_F4,   KC_F5,    KC_F6,
-        KC_F7,   KC_TRNS,  KC_F9
-    ),
-
-    [PIXELORAMA] = LAYOUT(
-        KC_F1,   KC_F2,    KC_F3,
-        KC_F4,   KC_F5,    KC_F6,
-        KC_F7,   KC_TRNS,  KC_F9
-    ),
-};
-
-// ─── Encoder keymaps ──────────────────────────────────────────────────────────
-//
-// Three actions per layer: { CW, CCW, BTN }
-// Supports any keycode: KC_*, LCTL(KC_Z), HID_USAGE_CONSUMER_*, …
-// KC_TRNS falls through to the layer below (same stack logic as matrix).
-
-struct EncoderMap { uint16_t cw; uint16_t ccw; uint16_t btn; };
-
-constexpr EncoderMap encoderMaps[LAYER_COUNT] = {
-    [DEFAULT]       = { HID_USAGE_CONSUMER_VOLUME_INCREMENT,
-                        HID_USAGE_CONSUMER_VOLUME_DECREMENT,
-                        HID_USAGE_CONSUMER_PLAY_PAUSE       },
-
-    [KRITA]         = { LCTL(KC_RBRC),   // rotate canvas right
-                        LCTL(KC_LBRC),      // rotate canvas left
-                        KC_TRNS          },
-
-    [KRITA_SECOND]  = { LCTL(KC_Z),      // undo
-                        RCS(KC_Z),          // redo
-                        KC_TRNS          },
-
-    [PIXELORAMA]    = { LCTL(KC_RBRC),
-                        LCTL(KC_LBRC),
-                        KC_TRNS          },
-};
 
 // ─── HID descriptor ───────────────────────────────────────────────────────────
 //
@@ -147,6 +88,7 @@ constexpr EncoderMap encoderMaps[LAYER_COUNT] = {
 
 static const uint8_t desc_hid_report[] = {
     TUD_HID_REPORT_DESC_NKRO_KEYBOARD( HID_REPORT_ID(1) ),
+    // TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(1)),
     TUD_HID_REPORT_DESC_SYSTEM_CONTROL(HID_REPORT_ID(2) ),
     TUD_HID_REPORT_DESC_CONSUMER(      HID_REPORT_ID(3) ),
     TUD_HID_REPORT_DESC_MOUSE(         HID_REPORT_ID(4) ),
@@ -187,15 +129,44 @@ void debounceMatrix() {
         for (uint8_t c = 0; c < MATRIX_COLS; ++c) {
             bool raw = (digitalRead(colPins[c]) == LOW);
             if (raw != matrixRaw[r][c]) {
-                matrixRaw[r][c]        = raw;
-                matrixDebTimer[r][c]   = now;
+                matrixRaw[r][c]           = raw;
+                matrixDebTimer[r][c]      = now;
                 matrixPendingChange[r][c] = true;
             }
             if (matrixPendingChange[r][c] &&
                 (now - matrixDebTimer[r][c]) >= MATRIX_DEB_MS) {
-                matrixPendingChange[r][c]   = false;
-                // Feed settled reading directly into engine
-                engine.matrixCurrent[r][c] = matrixRaw[r][c];
+                matrixPendingChange[r][c] = false;
+
+                // ── Step 1: Rotate ───────────────────────────────────────────
+                uint8_t nr, nc;
+                #if   MATRIX_ROTATION == 90  && MATRIX_ROWS == MATRIX_COLS
+                    nr = c;                      nc = (MATRIX_ROWS - 1) - r;
+                #elif MATRIX_ROTATION == 180 && MATRIX_ROWS == MATRIX_COLS
+                    nr = (MATRIX_ROWS - 1) - r;  nc = (MATRIX_COLS - 1) - c;
+                #elif MATRIX_ROTATION == 270 && MATRIX_ROWS == MATRIX_COLS
+                    nr = (MATRIX_COLS - 1) - c;  nc = r;
+                #else // 0°
+                    nr = r;                      nc = c;
+                #endif
+
+                // ── Step 2: Invert ───────────────────────────────────────────
+                #if defined(MATRIX_INVERT_VERTICAL)
+                    #if (MATRIX_ROTATION == 90 || MATRIX_ROTATION == 270) && MATRIX_ROWS == MATRIX_COLS
+                        nr = (MATRIX_COLS - 1) - nr;
+                    #else
+                        nr = (MATRIX_ROWS - 1) - nr;
+                    #endif
+                #endif
+
+                #if defined(MATRIX_INVERT_HORIZONTAL)
+                    #if MATRIX_ROTATION == 90 || MATRIX_ROTATION == 270
+                        nc = (MATRIX_ROWS - 1) - nc;
+                    #else
+                        nc = (MATRIX_COLS - 1) - nc;
+                    #endif
+                #endif
+
+                engine.matrixCurrent[nr][nc] = matrixRaw[r][c];
             }
         }
         digitalWrite(rowPins[r], HIGH);
@@ -203,7 +174,7 @@ void debounceMatrix() {
 }
 
 // ─── Encoder ──────────────────────────────────────────────────────────────────
-
+#ifdef ENCODER_ENABLE
 constexpr int8_t ENC_TABLE[16] = {
      0, -1,  1,  0,
      1,  0,  0, -1,
@@ -216,9 +187,9 @@ volatile int8_t encDelta     = 0;
 uint8_t         encStatePrev = 0;
 
 void tickEncoder() {
-    uint8_t a   = digitalRead(ENCODER_A_PIN);
-    uint8_t b   = digitalRead(ENCODER_B_PIN);
-    uint8_t cur = (a << 1) | b;
+    const uint8_t a   = digitalRead(ENCODER_A_PIN);
+    const uint8_t b   = digitalRead(ENCODER_B_PIN);
+    const uint8_t cur = (a << 1) | b;
     encDelta   += ENC_TABLE[((encStatePrev << 2) | cur) & 0x0F];
     encStatePrev = cur;
 }
@@ -232,6 +203,7 @@ uint16_t resolveEncoderKey(uint16_t EncoderMap::*field) {
     }
     return KC_NO;
 }
+#endif
 
 // Send any keycode (keyboard or consumer) as a pulse
 void sendKeyPulse(uint16_t kc) {
@@ -255,7 +227,7 @@ void sendKeyPulse(uint16_t kc) {
 }
 
 // ─── Encoder button debounce ──────────────────────────────────────────────────
-
+#ifdef ENCODER_ENABLE
 bool     encBtnSettled = HIGH;
 bool     encBtnRaw     = HIGH;
 uint32_t encBtnTimer   = 0;
@@ -270,15 +242,21 @@ void debounceEncBtn() {
     if ((millis() - encBtnTimer) >= BTN_DEB_MS)
         encBtnSettled = encBtnRaw;
 }
+#endif
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 void setup() {
     Serial.begin(115200);
 
+    engine.setTapDance(td_entries, TD_COUNT);
+    engine.TAP_HOLD_MS    = 130;  // ms до hold для MT/LT
+    engine.TAP_DANCE_TERM = 150;  // ms между тапами в tap dance
+
     Wire.setPins(D10, D9);
     Wire.begin();
 
+#ifdef OLED_SSD1306_ENABLED
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
         Serial.println("SSD1306 allocation failed");
     }
@@ -287,9 +265,11 @@ void setup() {
     display.setTextColor(WHITE);
     display.setTextSize(1);
     display.setCursor(0, 0);
+    display.setRotation(SCREEN_ROTATION / 90);
     display.printf("Hello Mio!");
 
     display.display();
+#endif
 
     usbHid.begin();
     while (!TinyUSBDevice.mounted()) delay(1);
@@ -301,50 +281,23 @@ void setup() {
     for (uint8_t c = 0; c < MATRIX_COLS; ++c)
         pinMode(colPins[c], INPUT_PULLUP);
 
+#ifdef ENCODER_ENABLE
     pinMode(ENCODER_A_PIN,   INPUT_PULLUP);
     pinMode(ENCODER_B_PIN,   INPUT_PULLUP);
     pinMode(ENCODER_BTN_PIN, INPUT_PULLUP);
 
     encStatePrev = (digitalRead(ENCODER_A_PIN) << 1) | digitalRead(ENCODER_B_PIN);
-
+#endif
     // Optional: set tap-hold threshold (default 200ms)
     engine.TAP_HOLD_MS = 200;
 }
 
 // ─── Loop ─────────────────────────────────────────────────────────────────────
-
 void loop() {
-    static uint8_t prev_layer_name = LAYER_COUNT;
-    const uint8_t layer_name = engine.highestActiveLayer();
-    if (prev_layer_name != layer_name) {
-        prev_layer_name = layer_name;
 
-
-        display.clearDisplay();
-        display.setCursor(0,0);
-
-        switch ( layer_name ) {
-            case DEFAULT:
-                display.println("DEFAULT");
-                break;
-            case KRITA:
-                display.println("KRITA");
-                break;
-            case KRITA_SECOND:
-                display.println("KRITA_SECOND");
-                break;
-            case PIXELORAMA:
-                display.println("PIXELORAMA");
-                break;
-            default:
-                display.println("UNKNOWN");
-        }
-
-
-        display.display();
-    }
 
     // 1. Encoder tick (called every loop for fine resolution)
+#ifdef ENCODER_ENABLE
     tickEncoder();
 
     // 2. Encoder rotation — layer-aware
@@ -352,24 +305,33 @@ void loop() {
         encDelta -= ENC_DETENT;
         sendKeyPulse(resolveEncoderKey(&EncoderMap::cw));
         Serial.print("Encoder CW  layer="); Serial.println(engine.highestActiveLayer());
-        return;
     }
     if (encDelta <= -ENC_DETENT) {
         encDelta += ENC_DETENT;
         sendKeyPulse(resolveEncoderKey(&EncoderMap::ccw));
         Serial.print("Encoder CCW layer="); Serial.println(engine.highestActiveLayer());
-        return;
     }
+#endif
 
     // 3. Matrix debounce — feeds engine.matrixCurrent[][]
     debounceMatrix();
 
     // 4. Encoder button debounce
+#ifdef ENCODER_ENABLE
     debounceEncBtn();
+#endif
 
-    if (!usbHid.ready()) return;
+    if (!usbHid.ready()) {
+        // display.clearDisplay();
+        // display.setTextSize(1);
+        // display.setCursor(0,0);
+        // display.printf("Hid host not connected or hid not ready");
+        // display.display();
+        return;
+    }
 
     // 5. Encoder button — layer-aware, edge-triggered
+#ifdef ENCODER_ENABLE
     static bool encBtnPrev = HIGH;
     if (encBtnSettled != encBtnPrev) {
         encBtnPrev = encBtnSettled;
@@ -392,6 +354,7 @@ void loop() {
             usbHid.sendReport(1, zero33, sizeof(zero33));
         }
     }
+#endif
 
     // 6. Build NKRO + mouse HID reports via QMK engine
     using NkroReport  = QmkEngine<MATRIX_ROWS, MATRIX_COLS, LAYER_COUNT>::NkroReport;
@@ -425,10 +388,10 @@ void loop() {
         prevMouse = mouse;
         uint8_t mbuf[5] = {
             mouse.buttons,
-            (uint8_t)mouse.x,
-            (uint8_t)mouse.y,
-            (uint8_t)mouse.v,
-            (uint8_t)mouse.h
+            static_cast<uint8_t>(mouse.x),
+            static_cast<uint8_t>(mouse.y),
+            static_cast<uint8_t>(mouse.v),
+            static_cast<uint8_t>(mouse.h)
         };
         while (!usbHid.ready()) { tud_task(); }
         usbHid.sendReport(4, mbuf, sizeof(mbuf));
@@ -440,4 +403,9 @@ void loop() {
         prevConsumer = consumer;
         usbHid.sendReport(3, &consumer, sizeof(consumer));
     }
+
+#ifdef OLED_SSD1306_ENABLED
+    oled_task_kb(&display, engine.highestActiveLayer());
+#endif
 }
+
