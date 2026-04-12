@@ -33,7 +33,7 @@
 #define QK_RSFT                0x1200
 #define QK_RALT                0x1400
 #define QK_RGUI                0x1800
-
+#define QK_USER_MAX            0x7FFF
 #define SAFE_RANGE             QK_USER
 // clang-format on
 
@@ -155,9 +155,15 @@
 
 #define C_S_T(kc) MT(MOD_LCTL | MOD_LSFT, kc)                        // Left Control + Shift e.g. for gnome-terminal
 #define MEH_T(kc) MT(MOD_LCTL | MOD_LSFT | MOD_LALT, kc)             // Meh is a less hyper version of the Hyper key -- doesn't include GUI, so just Left Control + Shift + Alt
+
+
+
 #define LCAG_T(kc) MT(MOD_LCTL | MOD_LALT | MOD_LGUI, kc)            // Left Control + Alt + GUI
 #define RCAG_T(kc) MT(MOD_RCTL | MOD_RALT | MOD_RGUI, kc)            // Right Control + Alt + GUI
 #define HYPR_T(kc) MT(MOD_LCTL | MOD_LSFT | MOD_LALT | MOD_LGUI, kc) // see http://brettterpstra.com/2012/12/08/a-useful-caps-lock-key/
+
+
+
 #define LSG_T(kc) MT(MOD_LSFT | MOD_LGUI, kc)                        // Left Shift + GUI
 #define SGUI_T(kc) LSG_T(kc)
 #define SCMD_T(kc) LSG_T(kc)

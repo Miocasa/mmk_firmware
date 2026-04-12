@@ -1,5 +1,6 @@
 /**
- * HID Keyboard - XIAO nRF52840 or another
+ * HID Keyboard – XIAO nRF52840
+ * 3×3 matrix + rotary encoder
  * USB (priority) + BLE simultaneous
  *
  * Uses qmk_engine.h — standalone QMK-compatible layer/keycode engine.
@@ -196,7 +197,7 @@ void tickEncoder() {
 uint16_t resolveEncoderKey(uint16_t EncoderMap::*field) {
     for (int8_t l = LAYER_COUNT - 1; l >= 0; --l) {
         if (!(engine.getLayerState() & (1u << l))) continue;
-        const uint16_t kc = encoderMaps[l].*field;
+        uint16_t kc = encoderMaps[l].*field;
         if (kc != KC_TRNS) return kc;
     }
     return KC_NO;
@@ -403,9 +404,7 @@ void loop() {
     }
 
 #ifdef OLED_SSD1306_ENABLED
-    auto input = engine.getInputActivity(
-        encDelta, ENC_DETENT, encBtnSettled);
-    oled_task_kb(engine.highestActiveLayer(), input, &display);
+    oled_task_kb(&display, engine.highestActiveLayer());
 #endif
 }
 

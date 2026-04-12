@@ -138,7 +138,7 @@ constexpr uint16_t PROGMEM keymaps[LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
     [FUNC] = LAYOUT( // Новый общий функциональный слой (undo/redo/copy/paste и т.д.)
         LCTL(KC_Z), RCS(KC_Z), LCTL(KC_Y), // Undo / Redo / Redo (альтернатива)
         LCTL(KC_X), LCTL(KC_C), LCTL(KC_V), // Cut / Copy / Paste
-        TD(FUNC_LAYER_TAP_DANCE), LCTL(KC_A), LCTL(KC_S) // Вернуться в DEFAULT / Select All / Save
+        TD(FUNC_LAYER_TAP_DANCE), QK_MAGIC_BOOTLOADER, LCTL(KC_S) // Вернуться в DEFAULT / Select All / Save
     ),
 };
 

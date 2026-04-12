@@ -1,4 +1,3 @@
-
 #ifndef NRF52MACROPAD_OLED_H
 #define NRF52MACROPAD_OLED_H
 
@@ -9,9 +8,23 @@
 #include "keymap.hpp"
 #include "oled_bitmaps.h"
 #include "oled_helpers.hpp"
+#include "boot.h"
 
 
-inline void oled_task_kb(Adafruit_SSD1306 *display, const uint8_t layer) {
+inline void oled_task_kb(const uint8_t layer,
+                         const QmkEngine<MATRIX_ROWS, MATRIX_COLS, LAYER_COUNT>::InputActivity &input,
+                         Adafruit_SSD1306 *display) {
+    /** Boot animation **/
+    static bool isBoot = true;
+    if (isBoot) {
+        const bool animDone = bootAnimation(display); // true когда анимация закончилась
+        if (animDone || input.anyActive)
+            isBoot = false;
+        else
+            return;
+    }
+
+    /** Default oled task **/
 #define LAYER_TILE_WIDTH  46
 #define LAYER_TILE_HEIGHT 48
 #define LAYER_TILE_X     ((display->width() - LAYER_TILE_WIDTH) / 2)
@@ -109,7 +122,7 @@ inline void oled_task_kb(Adafruit_SSD1306 *display, const uint8_t layer) {
 
     const AnimationParams &anim = LAYER_ANIM[layer];
 
-    bool layer_changed = (prev_layer != layer);
+    const bool layer_changed = (prev_layer != layer);
     if (layer_changed) {
         if (prev_layer == KRITA_ALT && layer == KRITA) {
             current_frame = krita_layer_anim_frames - 1;
