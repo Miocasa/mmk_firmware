@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <bluefruit.h>
 
+#include "structs.h"
+
 // ─── Power states ─────────────────────────────────────────────────────────────
 //
 //  ACTIVE       — full speed, all peripherals on, display on
@@ -32,7 +34,6 @@ struct PowerManagerConfig {
     uint32_t light_sleep_ms = 30000; // 30s -> LIGHT_SLEEP
     uint32_t deep_sleep_ms = 60000; // 60s -> DEEP_SLEEP
 
-    // Конструктор с дефолтами — решает оба warning clangd и ошибку компилятора
     PowerManagerConfig(
         uint32_t dim = 5000,
         uint32_t idle = 15000,
@@ -51,7 +52,8 @@ public:
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     // Call once in setup() — registers GPIO wakeup pins for deep sleep
     void begin(const uint8_t *col_pins, uint8_t col_count,
-               int encoder_btn_pin = -1);
+               const uint8_t *row_pins, uint8_t row_count,
+               EncoderMap *enc = nullptr);
 
     // Call every loop() iteration — drives the state machine
     void tick();
@@ -90,8 +92,11 @@ private:
 
     // GPIO wakeup config
     const uint8_t *_colPins = nullptr;
+    const uint8_t *_rowPins = nullptr;
     uint8_t _colCount = 0;
-    int _encBtnPin = -1;
+    uint8_t _rowCount = 0;
+    EncoderMap *_encoder = nullptr;
+
 
     void _transition(PowerState next);
 

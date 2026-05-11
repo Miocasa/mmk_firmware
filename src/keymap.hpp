@@ -1,6 +1,8 @@
 #pragma once
 #include <Arduino.h>
 
+#include "structs.h"
+
 
 #define OLED_SSD1306_ENABLED
 #define OLED_SEPARATED_TASK  // include oled.h file with user configuration for oled_task_kb
@@ -9,9 +11,16 @@
 #define SCREEN_ROTATION 270
 
 #define ENCODER_ENABLE
-#define ENCODER_BTN_PIN D3
-#define ENCODER_A_PIN   D7
-#define ENCODER_B_PIN   D8
+// #define ENCODER_BTN_PIN D3
+// #define ENCODER_A_PIN   D7
+// #define ENCODER_B_PIN   D8
+#ifdef ENCODER_ENABLE
+constexpr Encoder PROGMEM encoder = {
+    D3,
+    D7,
+    D8,
+};
+#endif
 
 #define MATRIX_ROTATION 90 /** Works only if rows and columns are equal **/
 
@@ -144,12 +153,6 @@ constexpr uint16_t PROGMEM keymaps[LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 
 // ─── Encoder keymaps ──────────────────────────────────────────────────────────
 #ifdef ENCODER_ENABLE
-struct EncoderMap {
-    uint16_t cw;
-    uint16_t ccw;
-    uint16_t btn;
-};
-
 constexpr EncoderMap PROGMEM encoderMaps[LAYER_COUNT] = {
     [MEDIA] = {
         HID_USAGE_CONSUMER_VOLUME_INCREMENT,

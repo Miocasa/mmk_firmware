@@ -47,8 +47,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 PowerManagerConfig pwrCfg = {
     15000,
     25000,
-    40000,
-    120000,
+    20000,
+    30000,
 };
 PowerManager pwr(pwrCfg);
 
@@ -132,8 +132,8 @@ volatile int8_t encDelta = 0;
 uint8_t encStatePrev = 0;
 
 void tickEncoder() {
-    const uint8_t a = digitalRead(ENCODER_A_PIN);
-    const uint8_t b = digitalRead(ENCODER_B_PIN);
+    const uint8_t a = digitalRead(encoder.PIN_A);
+    const uint8_t b = digitalRead(encoder.PIN_B);
     const uint8_t cur = (a << 1) | b;
     encDelta += ENC_TABLE[((encStatePrev << 2) | cur) & 0x0F];
     encStatePrev = cur;
@@ -181,7 +181,7 @@ uint32_t encBtnTimer = 0;
 constexpr uint32_t BTN_DEB_MS = 20;
 
 void debounceEncBtn() {
-    bool raw = digitalRead(ENCODER_BTN_PIN);
+    bool raw = digitalRead(encoder.PIN_BUTTON);
     if (raw != encBtnRaw) {
         encBtnRaw = raw;
         encBtnTimer = millis();
@@ -204,7 +204,7 @@ void setup() {
 
 #ifdef OLED_SSD1306_ENABLED
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
-        Serial.println("SSD1306 allocation failed");
+        Serial.println("[OLED] SSD1306 allocation failed");
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setTextSize(1);
@@ -216,10 +216,9 @@ void setup() {
 
     hid.begin("Miopad");
     pwr.begin(colPins, MATRIX_COLS,
+              rowPins, MATRIX_ROWS,
 #ifdef ENCODER_ENABLE
-              ENCODER_BTN_PIN
-#else
-              -1
+              new EncoderMap
 #endif
     );
 
@@ -232,7 +231,7 @@ void setup() {
             Serial.println("[OLED] Wakeup recovery");
 
             if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-                Serial.println("SSD1306 re-init failed");
+                Serial.println("[OLED] SSD1306 re-init failed");
             }
 
             display.setTextColor(WHITE);
@@ -257,10 +256,10 @@ void setup() {
         pinMode(colPins[c], INPUT_PULLUP);
 
 #ifdef ENCODER_ENABLE
-    pinMode(ENCODER_A_PIN, INPUT_PULLUP);
-    pinMode(ENCODER_B_PIN, INPUT_PULLUP);
-    pinMode(ENCODER_BTN_PIN, INPUT_PULLUP);
-    encStatePrev = (digitalRead(ENCODER_A_PIN) << 1) | digitalRead(ENCODER_B_PIN);
+    pinMode(encoder.PIN_A, INPUT_PULLUP);
+    pinMode(encoder.PIN_B, INPUT_PULLUP);
+    pinMode(encoder.PIN_BUTTON, INPUT_PULLUP);
+    encStatePrev = (digitalRead(encoder.PIN_A) << 1) | digitalRead(encoder.PIN_B);
 #endif
 }
 
@@ -291,33 +290,33 @@ void loop() {
     static MouseReport prevMouse = {};
     static uint16_t prevConsumer = 0;
 
-    // После переподключения или выхода из сна — форс-ресенд
+    // After reconnect or wake from sleep force resend
     if (hid.consumeForceResend() || pwr.consumeWakeup()) {
         memset(&prevReport, 0xFF, sizeof(prevReport));
         memset(&prevMouse, 0xFF, sizeof(prevMouse));
         prevConsumer = 0xFFFF;
     }
 
-    // ── 1. Serial команды ─────────────────────────────────────────────────────
+    // ── 1. Serial commands ─────────────────────────────────────────────────────
     const int ch = tolower(Serial.read());
     if (ch == 'r') { enterUf2Dfu(); }
     if (ch == 'b') {
         hid.setMode(BLE_MODE);
-        Serial.println("BLE_MODE");
+        Serial.println("[CONFIG] BLE_MODE");
     }
     if (ch == 'a') {
         hid.setMode(AUTO_MODE);
-        Serial.println("AUTO_MODE");
+        Serial.println("[CONFIG] AUTO_MODE");
     }
     if (ch == 'u') {
         hid.setMode(ONLY_USB_MODE);
-        Serial.println("ONLY_USB_MODE");
+        Serial.println("[CONFIG] ONLY_USB_MODE");
     }
     if (ch == 'o') {
         hid.setMode(ONLY_BLE_MODE);
-        Serial.println("ONLY_BLE_MODE");
+        Serial.println("[CONFIG] ONLY_BLE_MODE");
     }
-    if (ch >= 0) { pwr.reportActivity(); } // любой serial символ = активность
+    if (ch >= 0) { pwr.reportActivity(); }
 
     // ── 2. Throttle matrix scan по power state ────────────────────────────────
     static uint32_t lastScan = 0;
@@ -339,8 +338,6 @@ void loop() {
         pwr.reportActivity();
         if (hid.ready()) {
             sendKeyPulse(resolveEncoderKey(&EncoderMap::cw));
-            Serial.print("Encoder CW  layer=");
-            Serial.println(engine.highestActiveLayer());
         }
     }
     if (encDelta <= -ENC_DETENT) {
@@ -348,8 +345,6 @@ void loop() {
         pwr.reportActivity();
         if (hid.ready()) {
             sendKeyPulse(resolveEncoderKey(&EncoderMap::ccw));
-            Serial.print("Encoder CCW layer=");
-            Serial.println(engine.highestActiveLayer());
         }
     }
 
@@ -365,8 +360,7 @@ void loop() {
     }
 #endif
 
-    // ── 6. Активность от матрицы ──────────────────────────────────────────────
-    // Проверяем изменения в матрице — если что-то нажато, будим power manager
+    // ── 6. Matrix read ──────────────────────────────────────────────
     if (doScan) {
         bool anyPressed = false;
         for (uint8_t r = 0; r < MATRIX_ROWS && !anyPressed; ++r)
@@ -375,7 +369,7 @@ void loop() {
         if (anyPressed) pwr.reportActivity();
     }
 
-    // ── 7. Ранний выход если HID не готов ─────────────────────────────────────
+    // ── 7. Early return if hid not accessible ─────────────────────────────────────
     if (!hid.ready()) return;
 
     // ── 8. Encoder button — edge-triggered ───────────────────────────────────
@@ -415,7 +409,6 @@ void loop() {
     if (report != prevReport) {
         prevReport = report;
         hid.sendNkro(report.mods, report.bitmap);
-        // Любое изменение отчёта = активность
         if (report.mods || memchr(report.bitmap, 0xFF, 32))
             pwr.reportActivity();
     }

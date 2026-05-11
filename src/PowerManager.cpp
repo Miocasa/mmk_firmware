@@ -1,4 +1,3 @@
-// PowerManager.cpp
 #include "PowerManager.h"
 
 // nRF52 SoftDevice / NVIC headers для WFI и GPIO sense
@@ -12,10 +11,13 @@ PowerManager::PowerManager(const PowerManagerConfig &cfg) : _cfg(cfg) {
 // ─── begin ────────────────────────────────────────────────────────────────────
 
 void PowerManager::begin(const uint8_t *col_pins, uint8_t col_count,
-                         int encoder_btn_pin) {
+                         const uint8_t *row_pins, uint8_t row_count,
+                         EncoderMap *enc) {
     _colPins = col_pins;
     _colCount = col_count;
-    _encBtnPin = encoder_btn_pin;
+    _rowPins = row_pins;
+    _rowCount = row_count;
+    _encoder = enc;
     _lastActivity = millis();
 }
 
@@ -134,13 +136,37 @@ void PowerManager::_configWakeupPins() {
             NRF_GPIO_PIN_SENSE_LOW
         );
     }
-    // Encoder button (active LOW)
-    if (_encBtnPin >= 0) {
-        nrf_gpio_cfg_sense_input(
-            digitalPinToPinName(_encBtnPin),
-            NRF_GPIO_PIN_PULLUP,
-            NRF_GPIO_PIN_SENSE_LOW
-        );
+    for (uint8_t i = 0; i < _rowCount; ++i) {
+        pinMode(_rowPins[i], OUTPUT);
+        digitalWrite(_rowPins[i], LOW);
+    }
+    if (_encoder != nullptr) {
+        // Button
+        if (_encoder->btn != 0xFF) {
+            nrf_gpio_cfg_sense_input(
+                digitalPinToPinName(_encoder->btn),
+                NRF_GPIO_PIN_PULLUP,
+                NRF_GPIO_PIN_SENSE_LOW
+            );
+        }
+
+        // CW
+        if (_encoder->cw != 0xFF) {
+            nrf_gpio_cfg_sense_input(
+                digitalPinToPinName(_encoder->cw),
+                NRF_GPIO_PIN_PULLUP,
+                NRF_GPIO_PIN_SENSE_LOW
+            );
+        }
+
+        // CCW
+        if (_encoder->ccw != 0xFF) {
+            nrf_gpio_cfg_sense_input(
+                digitalPinToPinName(_encoder->ccw),
+                NRF_GPIO_PIN_PULLUP,
+                NRF_GPIO_PIN_SENSE_LOW
+            );
+        }
     }
 }
 
@@ -151,7 +177,7 @@ void PowerManager::_enterDeepSleep() {
     Serial.flush();
 
     // Stop BLE advertising to save power (optional — comment out to stay discoverable)
-    // Bluefruit.Advertising.stop();
+    Bluefruit.Advertising.stop();
 
     // Reduce TX power to minimum
     Bluefruit.setTxPower(-40);
@@ -169,14 +195,28 @@ void PowerManager::_enterDeepSleep() {
 
         // Check if any col pin is asserted (key pressed)
         bool woken = false;
+        // Matrix
         for (uint8_t i = 0; i < _colCount; ++i) {
             if (digitalRead(_colPins[i]) == LOW) {
                 woken = true;
+                Serial.println("[PWR] Woken by matrix");
                 break;
             }
         }
-        if (!woken && _encBtnPin >= 0 && digitalRead(_encBtnPin) == LOW)
-            woken = true;
+
+        // Encoder
+        if (!woken && _encoder != nullptr) {
+            if (digitalRead(_encoder->btn) == LOW) {
+                woken = true;
+                Serial.println("[PWR] Woken by encoder button");
+            } else if (digitalRead(_encoder->cw) == LOW) {
+                woken = true;
+                Serial.println("[PWR] Woken by encoder CW");
+            } else if (digitalRead(_encoder->ccw) == LOW) {
+                woken = true;
+                Serial.println("[PWR] Woken by encoder CCW");
+            }
+        }
 
         if (woken) break;
 
@@ -193,9 +233,21 @@ void PowerManager::_enterDeepSleep() {
             NRF_GPIO_PIN_PULLUP
         );
     }
-    if (_encBtnPin >= 0) {
+    for (uint8_t i = 0; i < _rowCount; ++i) {
+        pinMode(_rowPins[i], OUTPUT);
+        digitalWrite(_rowPins[i], HIGH);
+    }
+    if (_encoder != nullptr) {
         nrf_gpio_cfg_input(
-            digitalPinToPinName(_encBtnPin),
+            digitalPinToPinName(_encoder->btn),
+            NRF_GPIO_PIN_PULLUP
+        );
+        nrf_gpio_cfg_input(
+            digitalPinToPinName(_encoder->cw),
+            NRF_GPIO_PIN_PULLUP
+        );
+        nrf_gpio_cfg_input(
+            digitalPinToPinName(_encoder->ccw),
             NRF_GPIO_PIN_PULLUP
         );
     }
