@@ -218,7 +218,7 @@ void setup() {
     pwr.begin(colPins, MATRIX_COLS,
               rowPins, MATRIX_ROWS,
 #ifdef ENCODER_ENABLE
-              new EncoderMap
+              &encoder
 #endif
     );
 

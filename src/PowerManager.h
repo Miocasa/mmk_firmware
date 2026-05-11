@@ -53,7 +53,7 @@ public:
     // Call once in setup() — registers GPIO wakeup pins for deep sleep
     void begin(const uint8_t *col_pins, uint8_t col_count,
                const uint8_t *row_pins, uint8_t row_count,
-               EncoderMap *enc = nullptr);
+               const Encoder *enc);
 
     // Call every loop() iteration — drives the state machine
     void tick();
@@ -95,7 +95,7 @@ private:
     const uint8_t *_rowPins = nullptr;
     uint8_t _colCount = 0;
     uint8_t _rowCount = 0;
-    EncoderMap *_encoder = nullptr;
+    const Encoder *_encoder = nullptr;
 
 
     void _transition(PowerState next);

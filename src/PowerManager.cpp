@@ -12,7 +12,7 @@ PowerManager::PowerManager(const PowerManagerConfig &cfg) : _cfg(cfg) {
 
 void PowerManager::begin(const uint8_t *col_pins, uint8_t col_count,
                          const uint8_t *row_pins, uint8_t row_count,
-                         EncoderMap *enc) {
+                         const Encoder *enc) {
     _colPins = col_pins;
     _colCount = col_count;
     _rowPins = row_pins;
@@ -142,27 +142,27 @@ void PowerManager::_configWakeupPins() {
     }
     if (_encoder != nullptr) {
         // Button
-        if (_encoder->btn != 0xFF) {
+        if (_encoder->PIN_BUTTON != 0xFF) {
             nrf_gpio_cfg_sense_input(
-                digitalPinToPinName(_encoder->btn),
+                digitalPinToPinName(_encoder->PIN_BUTTON),
                 NRF_GPIO_PIN_PULLUP,
                 NRF_GPIO_PIN_SENSE_LOW
             );
         }
 
         // CW
-        if (_encoder->cw != 0xFF) {
+        if (_encoder->PIN_A != 0xFF) {
             nrf_gpio_cfg_sense_input(
-                digitalPinToPinName(_encoder->cw),
+                digitalPinToPinName(_encoder->PIN_A),
                 NRF_GPIO_PIN_PULLUP,
                 NRF_GPIO_PIN_SENSE_LOW
             );
         }
 
         // CCW
-        if (_encoder->ccw != 0xFF) {
+        if (_encoder->PIN_B != 0xFF) {
             nrf_gpio_cfg_sense_input(
-                digitalPinToPinName(_encoder->ccw),
+                digitalPinToPinName(_encoder->PIN_B),
                 NRF_GPIO_PIN_PULLUP,
                 NRF_GPIO_PIN_SENSE_LOW
             );
@@ -206,13 +206,13 @@ void PowerManager::_enterDeepSleep() {
 
         // Encoder
         if (!woken && _encoder != nullptr) {
-            if (digitalRead(_encoder->btn) == LOW) {
+            if (digitalRead(_encoder->PIN_BUTTON) == LOW) {
                 woken = true;
                 Serial.println("[PWR] Woken by encoder button");
-            } else if (digitalRead(_encoder->cw) == LOW) {
+            } else if (digitalRead(_encoder->PIN_A) == LOW) {
                 woken = true;
                 Serial.println("[PWR] Woken by encoder CW");
-            } else if (digitalRead(_encoder->ccw) == LOW) {
+            } else if (digitalRead(_encoder->PIN_B) == LOW) {
                 woken = true;
                 Serial.println("[PWR] Woken by encoder CCW");
             }
@@ -239,15 +239,15 @@ void PowerManager::_enterDeepSleep() {
     }
     if (_encoder != nullptr) {
         nrf_gpio_cfg_input(
-            digitalPinToPinName(_encoder->btn),
+            digitalPinToPinName(_encoder->PIN_BUTTON),
             NRF_GPIO_PIN_PULLUP
         );
         nrf_gpio_cfg_input(
-            digitalPinToPinName(_encoder->cw),
+            digitalPinToPinName(_encoder->PIN_A),
             NRF_GPIO_PIN_PULLUP
         );
         nrf_gpio_cfg_input(
-            digitalPinToPinName(_encoder->ccw),
+            digitalPinToPinName(_encoder->PIN_B),
             NRF_GPIO_PIN_PULLUP
         );
     }
