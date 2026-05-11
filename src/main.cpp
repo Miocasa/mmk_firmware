@@ -16,6 +16,7 @@
 #include <keymap.hpp>
 
 #include "hid_instance.h"
+#include "PowerManager.h"
 
 
 #ifdef OLED_SSD1306_ENABLED
@@ -43,44 +44,13 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #endif
 
-
-// ─── HID descriptor ───────────────────────────────────────────────────────────
-//
-// Report layout:
-//   ID 1 — NKRO keyboard  : mods (1 byte) + keycode bitmap (32 bytes)
-//   ID 2 — System control : 2-bit power + 6-bit padding
-//   ID 3 — Consumer       : 16-bit usage ID
-//   ID 4 — Mouse          : buttons (1 byte) + x,y,v,h (4 × int8)
-
-#define TUD_HID_REPORT_DESC_NKRO_KEYBOARD(...) \
-  HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP     )                    ,\
-  HID_USAGE      ( HID_USAGE_DESKTOP_KEYBOARD )                    ,\
-  HID_COLLECTION ( HID_COLLECTION_APPLICATION )                    ,\
-    __VA_ARGS__                                                      \
-    HID_USAGE_PAGE   ( HID_USAGE_PAGE_KEYBOARD )                   ,\
-    HID_USAGE_MIN    ( 224                     )                   ,\
-    HID_USAGE_MAX    ( 231                     )                   ,\
-    HID_LOGICAL_MIN  ( 0                       )                   ,\
-    HID_LOGICAL_MAX  ( 1                       )                   ,\
-    HID_REPORT_COUNT ( 8                       )                   ,\
-    HID_REPORT_SIZE  ( 1                       )                   ,\
-    HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE )    ,\
-    HID_USAGE_PAGE     ( HID_USAGE_PAGE_KEYBOARD )                 ,\
-    HID_USAGE_MIN      ( 0                       )                 ,\
-    HID_USAGE_MAX_N    ( 255, 2                  )                 ,\
-    HID_LOGICAL_MIN    ( 0                       )                 ,\
-    HID_LOGICAL_MAX    ( 1                       )                 ,\
-    HID_REPORT_COUNT_N ( 256, 2                  )                 ,\
-    HID_REPORT_SIZE    ( 1                       )                 ,\
-    HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE )  ,\
-  HID_COLLECTION_END
-
-static const uint8_t desc_hid_report[] = {
-    TUD_HID_REPORT_DESC_NKRO_KEYBOARD(HID_REPORT_ID(1)),
-    TUD_HID_REPORT_DESC_SYSTEM_CONTROL(HID_REPORT_ID(2)),
-    TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(3)),
-    TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(4)),
+PowerManagerConfig pwrCfg = {
+    15000,
+    25000,
+    40000,
+    120000,
 };
+PowerManager pwr(pwrCfg);
 
 // ─── HID object ───────────────────────────────────────────────────────────────
 
@@ -245,7 +215,39 @@ void setup() {
 
 
     hid.begin("Miopad");
-    hid.setMode(AUTO_MODE);
+    pwr.begin(colPins, MATRIX_COLS,
+#ifdef ENCODER_ENABLE
+              ENCODER_BTN_PIN
+#else
+              -1
+#endif
+    );
+
+    // Callback for oled and backlight
+    pwr.setCallback([](PowerState prev, PowerState next) {
+#ifdef OLED_SSD1306_ENABLED
+        if (next >= PWR_IDLE) {
+            display.ssd1306_command(SSD1306_DISPLAYOFF);
+        } else if (prev >= PWR_LIGHT_SLEEP && next == PWR_ACTIVE) {
+            Serial.println("[OLED] Wakeup recovery");
+
+            if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+                Serial.println("SSD1306 re-init failed");
+            }
+
+            display.setTextColor(WHITE);
+            display.setTextSize(1);
+            display.setRotation(SCREEN_ROTATION / 90);
+            display.clearDisplay();
+            display.display();
+
+            delay(20);
+        } else if (prev >= PWR_IDLE && next < PWR_IDLE) {
+            display.ssd1306_command(SSD1306_DISPLAYON);
+            display.dim(false);
+        }
+#endif
+    });
 
     for (uint8_t r = 0; r < MATRIX_ROWS; ++r) {
         pinMode(rowPins[r], OUTPUT);
@@ -262,9 +264,7 @@ void setup() {
 #endif
 }
 
-// ─── Loop ─────────────────────────────────────────────────────────────────────
-void loop() {
-    // ——— Reinit tiny usb
+void ReInitUsb() {
     static bool lastVbus = false;
     const bool currentVbus = (NRF_POWER->USBREGSTATUS & POWER_USBREGSTATUS_VBUSDETECT_Msk) != 0;
 
@@ -279,76 +279,119 @@ void loop() {
     }
 
     lastVbus = currentVbus;
+}
 
+void loop() {
+    // ── 0. HID + Power tick ───────────────────────────────────────────────────
+    ReInitUsb();
+    pwr.tick();
 
-    int ch = Serial.read();
-    ch = tolower(ch);
-    if (ch == 'r') {
-        Serial.println("reboot to bootloader");
-        enterUf2Dfu();
+    using NkroReport = QmkEngine<MATRIX_ROWS, MATRIX_COLS, LAYER_COUNT>::NkroReport;
+    static NkroReport prevReport = {};
+    static MouseReport prevMouse = {};
+    static uint16_t prevConsumer = 0;
+
+    // После переподключения или выхода из сна — форс-ресенд
+    if (hid.consumeForceResend() || pwr.consumeWakeup()) {
+        memset(&prevReport, 0xFF, sizeof(prevReport));
+        memset(&prevMouse, 0xFF, sizeof(prevMouse));
+        prevConsumer = 0xFFFF;
     }
+
+    // ── 1. Serial команды ─────────────────────────────────────────────────────
+    const int ch = tolower(Serial.read());
+    if (ch == 'r') { enterUf2Dfu(); }
     if (ch == 'b') {
-        Serial.println("Ble mode set");
         hid.setMode(BLE_MODE);
+        Serial.println("BLE_MODE");
     }
-    if (ch == 'a' || ch == 'u') {
-        Serial.println("Auto mode set");
+    if (ch == 'a') {
         hid.setMode(AUTO_MODE);
+        Serial.println("AUTO_MODE");
     }
-    // if (ch == 'f') {
-    //     Serial.println("Flash format");
-    //     hid.setMode(AUTO_MODE);
-    // }
+    if (ch == 'u') {
+        hid.setMode(ONLY_USB_MODE);
+        Serial.println("ONLY_USB_MODE");
+    }
+    if (ch == 'o') {
+        hid.setMode(ONLY_BLE_MODE);
+        Serial.println("ONLY_BLE_MODE");
+    }
+    if (ch >= 0) { pwr.reportActivity(); } // любой serial символ = активность
 
+    // ── 2. Throttle matrix scan по power state ────────────────────────────────
+    static uint32_t lastScan = 0;
+    const uint32_t scanInterval = pwr.scanIntervalMs();
+    const uint32_t now = millis();
+    const bool doScan = (scanInterval <= 1) || ((now - lastScan) >= scanInterval);
+
+    if (doScan) {
+        lastScan = now;
+        debounceMatrix();
+    }
+
+    // ── 3. Encoder ────────────────────────────────────────────────────────────
 #ifdef ENCODER_ENABLE
-    // 1. Encoder tick
     tickEncoder();
 
-    // 2. Encoder rotation
     if (encDelta >= ENC_DETENT) {
         encDelta -= ENC_DETENT;
-        sendKeyPulse(resolveEncoderKey(&EncoderMap::cw));
-        Serial.print("Encoder CW  layer=");
-        Serial.println(engine.highestActiveLayer());
+        pwr.reportActivity();
+        if (hid.ready()) {
+            sendKeyPulse(resolveEncoderKey(&EncoderMap::cw));
+            Serial.print("Encoder CW  layer=");
+            Serial.println(engine.highestActiveLayer());
+        }
     }
     if (encDelta <= -ENC_DETENT) {
         encDelta += ENC_DETENT;
-        sendKeyPulse(resolveEncoderKey(&EncoderMap::ccw));
-        Serial.print("Encoder CCW layer=");
-        Serial.println(engine.highestActiveLayer());
+        pwr.reportActivity();
+        if (hid.ready()) {
+            sendKeyPulse(resolveEncoderKey(&EncoderMap::ccw));
+            Serial.print("Encoder CCW layer=");
+            Serial.println(engine.highestActiveLayer());
+        }
     }
-#endif
 
-    // 3. Matrix debounce
-    debounceMatrix();
-
-    // 4. Encoder button debounce
-#ifdef ENCODER_ENABLE
+    // ── 4. Encoder button debounce ────────────────────────────────────────────
     debounceEncBtn();
 #endif
 
-    // Read input
-    const auto input = engine.getInputActivity(encDelta, ENC_DETENT, encBtnSettled);
-
-
-    // Oled task
+    // ── 5. OLED ───────────────────────────────────────────────────────────────
 #ifdef OLED_SSD1306_ENABLED
-    oled_task_kb(engine.highestActiveLayer(), input, &display);
+    if (!pwr.isAsleep()) {
+        auto input = engine.getInputActivity(encDelta, ENC_DETENT, encBtnSettled);
+        oled_task_kb(engine.highestActiveLayer(), input, &display);
+    }
 #endif
 
-    if (!hid.ready()) { return; }
+    // ── 6. Активность от матрицы ──────────────────────────────────────────────
+    // Проверяем изменения в матрице — если что-то нажато, будим power manager
+    if (doScan) {
+        bool anyPressed = false;
+        for (uint8_t r = 0; r < MATRIX_ROWS && !anyPressed; ++r)
+            for (uint8_t c = 0; c < MATRIX_COLS && !anyPressed; ++c)
+                if (engine.matrixCurrent[r][c]) anyPressed = true;
+        if (anyPressed) pwr.reportActivity();
+    }
 
-    // 5. Encoder button — edge-triggered
+    // ── 7. Ранний выход если HID не готов ─────────────────────────────────────
+    if (!hid.ready()) return;
+
+    // ── 8. Encoder button — edge-triggered ───────────────────────────────────
 #ifdef ENCODER_ENABLE
     static bool encBtnPrev = HIGH;
     if (encBtnSettled != encBtnPrev) {
         encBtnPrev = encBtnSettled;
-        uint16_t kc = resolveEncoderKey(&EncoderMap::btn);
-        ResolvedKey rk = engine.resolveRaw(kc);
+        pwr.reportActivity();
+
+        const uint16_t kc = resolveEncoderKey(&EncoderMap::btn);
+        const ResolvedKey rk = engine.resolveRaw(kc);
+
         if (encBtnSettled == LOW) {
-            if (rk.consumer)
+            if (rk.consumer) {
                 hid.sendConsumer(rk.consumer);
-            else if (rk.hid_keycode || rk.hid_mods) {
+            } else if (rk.hid_keycode || rk.hid_mods) {
                 uint8_t buf[33] = {};
                 buf[0] = rk.hid_mods;
                 if (rk.hid_keycode < 0xE0u)
@@ -362,34 +405,36 @@ void loop() {
     }
 #endif
 
-    // 6. Build NKRO + mouse reports via QMK engine
-    using NkroReport = QmkEngine<MATRIX_ROWS, MATRIX_COLS, LAYER_COUNT>::NkroReport;
-
+    // ── 9. Build + send HID reports ───────────────────────────────────────────
     NkroReport report = {};
     MouseReport mouse = {};
     uint16_t consumer = 0;
-
     engine.buildReport(report, mouse, consumer);
 
-    // 7. NKRO keyboard report — only on change
-    static NkroReport prevReport = {};
+    // Keyboard
     if (report != prevReport) {
         prevReport = report;
-        hid.sendNkro(report.mods, report.bitmap); // ← было sendKeyboard
+        hid.sendNkro(report.mods, report.bitmap);
+        // Любое изменение отчёта = активность
+        if (report.mods || memchr(report.bitmap, 0xFF, 32))
+            pwr.reportActivity();
     }
 
-    // 8. Mouse report
-    static MouseReport prevMouse = {};
+    // Mouse
     if (mouse != prevMouse) {
         prevMouse = mouse;
-        hid.sendMouse(mouse.buttons, mouse.x, mouse.y, mouse.v, mouse.h); // ← теперь работает
+        hid.sendMouse(mouse.buttons, mouse.x, mouse.y, mouse.v, mouse.h);
+        pwr.reportActivity();
     }
 
-    // 9. Consumer report
-    static uint16_t prevConsumer = 0;
+    // Consumer
     if (consumer != prevConsumer) {
         prevConsumer = consumer;
-        if (consumer) hid.sendConsumer(consumer);
-        else hid.releaseConsumer();
+        if (consumer) {
+            hid.sendConsumer(consumer);
+            pwr.reportActivity();
+        } else {
+            hid.releaseConsumer();
+        }
     }
 }
