@@ -11,18 +11,30 @@
 #include "boot.h"
 
 
+inline void draw_mode(Adafruit_SSD1306 *display, const char *str) {
+    uint8_t rt = display->getRotation();
+    display->setRotation(3);
+    display->setRotation(0);
+    display->setCursor(0, 62);
+    display->setTextColor(WHITE);
+    display->setFont(&Picopixel);
+    display->println(str);
+    display->setRotation(rt);
+}
+
 inline void oled_task_kb(const uint8_t layer,
                          const QmkEngine<MATRIX_ROWS, MATRIX_COLS, LAYER_COUNT>::InputActivity &input,
                          Adafruit_SSD1306 *display) {
     /** Boot animation **/
     static bool isBoot = true;
     if (isBoot) {
-        const bool animDone = bootAnimation(display); // true когда анимация закончилась
+        const bool animDone = bootAnimation(display);
         if (animDone || input.anyActive)
             isBoot = false;
         else
             return;
     }
+
 
     /** Default oled task **/
 #define LAYER_TILE_WIDTH  46
@@ -79,7 +91,7 @@ inline void oled_task_kb(const uint8_t layer,
             {
                 {ICON_BRUSH, ICON_ERASER, ICON_COLOR_PICKER},
                 {ICON_MOVE_CANVA, ICON_BACKED, ICON_GROUP},
-                {ICON_TAP_DANCE, ICON_TRNS, ICON_TRNS}
+                {ICON_TAP_DANCE, ICON_TRNS, ICON_UNDO}
             },
             {ICON_TRNS, ICON_PLUS, ICON_MINUS},
         },
@@ -164,7 +176,20 @@ inline void oled_task_kb(const uint8_t layer,
     if (!need_redraw) return;
 
     display->clearDisplay();
-
+    {
+        /** Connection mode **/
+        switch (hid.getTransport()) {
+            case 1:
+                draw_mode(display, "USB");
+                break;
+            case 2:
+                draw_mode(display, "BLE");
+                break;
+            default:
+                draw_mode(display, "No conn");
+                break;
+        }
+    }
     switch (layer) {
         case MEDIA:
             display->drawBitmap(LAYER_TILE_X, LAYER_TILE_Y,

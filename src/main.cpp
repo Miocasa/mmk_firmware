@@ -7,7 +7,7 @@
  */
 
 #include <Arduino.h>
-#include <Adafruit_TinyUSB.h>
+#include "UnifiedHid.h"
 #include "qmk_engine.h"
 #include <SPI.h>
 #include <Wire.h>
@@ -15,38 +15,33 @@
 #include <Adafruit_SSD1306.h>
 #include <keymap.hpp>
 
+#include "hid_instance.h"
 
-#ifdef OLED_SSD1306_ENABLED // init ssd1306 oled
 
-#ifdef OLED_SEPARATED_TASK  // user header with oled_task_kb inside
+#ifdef OLED_SSD1306_ENABLED
+
+#ifdef OLED_SEPARATED_TASK
 #include "oled.h"
 #endif
 
 #define SCREEN_WIDTH_DEFAULT 128
 #define SCREEN_HEIGHT_DEFAULT 64
-#define  SCREEN_ADDRESS_DEFAULT 0x3C
+#define SCREEN_ADDRESS_DEFAULT 0x3C
 
 #ifndef SCREEN_WIDTH
 #define SCREEN_WIDTH SCREEN_WIDTH_DEFAULT
 #endif
-
 #ifndef SCREEN_HEIGHT
 #define SCREEN_HEIGHT SCREEN_HEIGHT_DEFAULT
 #endif
-
 #ifndef SCREEN_ADDRESS
 #define SCREEN_ADDRESS SCREEN_ADDRESS_DEFAULT
 #endif
 
-
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-
+#define OLED_RESET -1
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #endif
-
-
-// ─── Pinout ───────────────────────────────────────────────────────────────────
 
 
 // ─── HID descriptor ───────────────────────────────────────────────────────────
@@ -62,7 +57,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
   HID_USAGE      ( HID_USAGE_DESKTOP_KEYBOARD )                    ,\
   HID_COLLECTION ( HID_COLLECTION_APPLICATION )                    ,\
     __VA_ARGS__                                                      \
-    /* 8 modifier bits (usage 224-231) */                            \
     HID_USAGE_PAGE   ( HID_USAGE_PAGE_KEYBOARD )                   ,\
     HID_USAGE_MIN    ( 224                     )                   ,\
     HID_USAGE_MAX    ( 231                     )                   ,\
@@ -71,8 +65,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
     HID_REPORT_COUNT ( 8                       )                   ,\
     HID_REPORT_SIZE  ( 1                       )                   ,\
     HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE )    ,\
-    /* 256-bit keycode bitmap: keycodes 0-255, 1 bit each */        \
-    /* REPORT_COUNT(256) needs 2-byte encoding → HID_REPORT_COUNT_N */ \
     HID_USAGE_PAGE     ( HID_USAGE_PAGE_KEYBOARD )                 ,\
     HID_USAGE_MIN      ( 0                       )                 ,\
     HID_USAGE_MAX_N    ( 255, 2                  )                 ,\
@@ -85,26 +77,15 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 static const uint8_t desc_hid_report[] = {
     TUD_HID_REPORT_DESC_NKRO_KEYBOARD(HID_REPORT_ID(1)),
-    // TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(1)),
     TUD_HID_REPORT_DESC_SYSTEM_CONTROL(HID_REPORT_ID(2)),
     TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(3)),
     TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(4)),
 };
 
-// ─── HID objects ──────────────────────────────────────────────────────────────
-//
-// Adafruit_USBD_HID::sendReport(report_id, data, len) is the correct API.
-// UnifiedHid wraps it but doesn't expose sendReport — so we use
-// Adafruit_USBD_HID directly. One instance handles all three report types
-// because they share a single composite descriptor.
-
-Adafruit_USBD_HID usbHid(desc_hid_report, sizeof(desc_hid_report),
-                         HID_ITF_PROTOCOL_NONE, /*interval_ms*/ 2,
-                         /*enable_out_ep*/ false);
+// ─── HID object ───────────────────────────────────────────────────────────────
 
 // ─── QMK engine ───────────────────────────────────────────────────────────────
 MAKE_QMK_ENGINE(keymaps, rowPins, colPins, ROW_TO_COL);
-// QmkEngine<MATRIX_ROWS, MATRIX_COLS, LAYER_COUNT> engine(keymaps, rowPins, colPins); // if no need in macros
 
 // ─── Matrix debounce ──────────────────────────────────────────────────────────
 
@@ -115,8 +96,6 @@ bool matrixRaw[MATRIX_ROWS][MATRIX_COLS] = {};
 bool matrixPendingChange[MATRIX_ROWS][MATRIX_COLS] = {};
 uint32_t matrixDebTimer[MATRIX_ROWS][MATRIX_COLS] = {};
 
-// Per-key debounce: only commit a changed reading after it has been
-// stable for MATRIX_DEB_MS ms, then push into engine.matrixCurrent.
 void debounceMatrix() {
     uint32_t now = millis();
 
@@ -134,7 +113,6 @@ void debounceMatrix() {
                 (now - matrixDebTimer[r][c]) >= MATRIX_DEB_MS) {
                 matrixPendingChange[r][c] = false;
 
-                // ── Step 1: Rotate ───────────────────────────────────────────
                 uint8_t nr, nc;
 #if   MATRIX_ROTATION == 90  && MATRIX_ROWS == MATRIX_COLS
                 nr = c;
@@ -143,11 +121,10 @@ void debounceMatrix() {
                 nr = (MATRIX_ROWS - 1) - r; nc = (MATRIX_COLS - 1) - c;
 #elif MATRIX_ROTATION == 270 && MATRIX_ROWS == MATRIX_COLS
                 nr = (MATRIX_COLS - 1) - c; nc = r;
-#else // 0°
+#else
                 nr = r; nc = c;
 #endif
 
-                // ── Step 2: Invert ───────────────────────────────────────────
 #if defined(MATRIX_INVERT_VERTICAL)
 #if (MATRIX_ROTATION == 90 || MATRIX_ROTATION == 270) && MATRIX_ROWS == MATRIX_COLS
                 nr = (MATRIX_COLS - 1) - nr;
@@ -192,7 +169,6 @@ void tickEncoder() {
     encStatePrev = cur;
 }
 
-// Walk encoder layer stack top-down, respecting KC_TRNS
 uint16_t resolveEncoderKey(uint16_t EncoderMap::*field) {
     for (int8_t l = LAYER_COUNT - 1; l >= 0; --l) {
         if (!(engine.getLayerState() & (1u << l))) continue;
@@ -203,24 +179,27 @@ uint16_t resolveEncoderKey(uint16_t EncoderMap::*field) {
 }
 #endif
 
-// Send any keycode (keyboard or consumer) as a pulse
+// ─── sendKeyPulse ─────────────────────────────────────────────────────────────
+// Sends any keycode as a press+release pulse via UnifiedHid.
+// For NKRO keyboard: packs mods + 32-byte bitmap into a raw sendReport call,
+// because UnifiedHid::sendKeyboard() uses the legacy 6KRO keyboardReport().
+
 void sendKeyPulse(uint16_t kc) {
     if (kc == KC_NO) return;
     ResolvedKey rk = engine.resolveRaw(kc);
+
     if (rk.consumer) {
-        usbHid.sendReport(3, &rk.consumer, sizeof(rk.consumer));
+        hid.sendConsumer(rk.consumer);
         delay(12);
-        uint16_t zero = 0;
-        usbHid.sendReport(3, &zero, sizeof(zero));
+        hid.releaseConsumer();
     } else if (rk.hid_keycode || rk.hid_mods) {
         uint8_t buf[33] = {};
         buf[0] = rk.hid_mods;
         if (rk.hid_keycode && rk.hid_keycode < 0xE0u)
             buf[1 + (rk.hid_keycode >> 3)] |= (1u << (rk.hid_keycode & 7u));
-        usbHid.sendReport(1, buf, sizeof(buf));
+        hid.sendNkro(buf[0], buf + 1); // mods + first 6 bytes (best-effort for pulse)
         delay(12);
-        uint8_t zero[33] = {};
-        usbHid.sendReport(1, zero, sizeof(zero));
+        hid.releaseKeyboard();
     }
 }
 
@@ -243,34 +222,30 @@ void debounceEncBtn() {
 #endif
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
-
 void setup() {
     Serial.begin(115200);
 
     engine.setTapDance(td_entries, TD_COUNT);
-    engine.TAP_HOLD_MS = 130; // ms до hold для MT/LT
-    engine.TAP_DANCE_TERM = 150; // ms между тапами в tap dance
+    engine.TAP_HOLD_MS = 200;
+    engine.TAP_DANCE_TERM = 150;
 
     Wire.setPins(D10, D9);
     Wire.begin();
 
 #ifdef OLED_SSD1306_ENABLED
-    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
         Serial.println("SSD1306 allocation failed");
-    }
     display.clearDisplay();
-
     display.setTextColor(WHITE);
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.setRotation(SCREEN_ROTATION / 90);
-    // display.printf("Hello Mio!");
-
     display.display();
 #endif
 
-    usbHid.begin();
-    while (!TinyUSBDevice.mounted()) delay(1);
+
+    hid.begin("Miopad");
+    hid.setMode(AUTO_MODE);
 
     for (uint8_t r = 0; r < MATRIX_ROWS; ++r) {
         pinMode(rowPins[r], OUTPUT);
@@ -283,20 +258,53 @@ void setup() {
     pinMode(ENCODER_A_PIN, INPUT_PULLUP);
     pinMode(ENCODER_B_PIN, INPUT_PULLUP);
     pinMode(ENCODER_BTN_PIN, INPUT_PULLUP);
-
     encStatePrev = (digitalRead(ENCODER_A_PIN) << 1) | digitalRead(ENCODER_B_PIN);
 #endif
-    // Optional: set tap-hold threshold (default 200ms)
-    engine.TAP_HOLD_MS = 200;
 }
 
 // ─── Loop ─────────────────────────────────────────────────────────────────────
 void loop() {
-    // 1. Encoder tick (called every loop for fine resolution)
+    // ——— Reinit tiny usb
+    static bool lastVbus = false;
+    const bool currentVbus = (NRF_POWER->USBREGSTATUS & POWER_USBREGSTATUS_VBUSDETECT_Msk) != 0;
+
+    if (currentVbus && !lastVbus && !hid.usbReady()) {
+        Serial.println("[USB] VBUS detected -> reinit");
+
+        TinyUSB_Device_Init(0);
+        tud_init(0);
+        delay(10);
+        hid.reinitUsb();
+        delay(150);
+    }
+
+    lastVbus = currentVbus;
+
+
+    int ch = Serial.read();
+    ch = tolower(ch);
+    if (ch == 'r') {
+        Serial.println("reboot to bootloader");
+        enterUf2Dfu();
+    }
+    if (ch == 'b') {
+        Serial.println("Ble mode set");
+        hid.setMode(BLE_MODE);
+    }
+    if (ch == 'a' || ch == 'u') {
+        Serial.println("Auto mode set");
+        hid.setMode(AUTO_MODE);
+    }
+    // if (ch == 'f') {
+    //     Serial.println("Flash format");
+    //     hid.setMode(AUTO_MODE);
+    // }
+
 #ifdef ENCODER_ENABLE
+    // 1. Encoder tick
     tickEncoder();
 
-    // 2. Encoder rotation — layer-aware
+    // 2. Encoder rotation
     if (encDelta >= ENC_DETENT) {
         encDelta -= ENC_DETENT;
         sendKeyPulse(resolveEncoderKey(&EncoderMap::cw));
@@ -311,7 +319,7 @@ void loop() {
     }
 #endif
 
-    // 3. Matrix debounce — feeds engine.matrixCurrent[][]
+    // 3. Matrix debounce
     debounceMatrix();
 
     // 4. Encoder button debounce
@@ -319,16 +327,18 @@ void loop() {
     debounceEncBtn();
 #endif
 
-    if (!usbHid.ready()) {
-        // display.clearDisplay();
-        // display.setTextSize(1);
-        // display.setCursor(0,0);
-        // display.printf("Hid host not connected or hid not ready");
-        // display.display();
-        return;
-    }
+    // Read input
+    const auto input = engine.getInputActivity(encDelta, ENC_DETENT, encBtnSettled);
 
-    // 5. Encoder button — layer-aware, edge-triggered
+
+    // Oled task
+#ifdef OLED_SSD1306_ENABLED
+    oled_task_kb(engine.highestActiveLayer(), input, &display);
+#endif
+
+    if (!hid.ready()) { return; }
+
+    // 5. Encoder button — edge-triggered
 #ifdef ENCODER_ENABLE
     static bool encBtnPrev = HIGH;
     if (encBtnSettled != encBtnPrev) {
@@ -337,24 +347,22 @@ void loop() {
         ResolvedKey rk = engine.resolveRaw(kc);
         if (encBtnSettled == LOW) {
             if (rk.consumer)
-                usbHid.sendReport(3, &rk.consumer, sizeof(rk.consumer));
+                hid.sendConsumer(rk.consumer);
             else if (rk.hid_keycode || rk.hid_mods) {
                 uint8_t buf[33] = {};
                 buf[0] = rk.hid_mods;
                 if (rk.hid_keycode < 0xE0u)
                     buf[1 + (rk.hid_keycode >> 3)] |= (1u << (rk.hid_keycode & 7u));
-                usbHid.sendReport(1, buf, sizeof(buf));
+                hid.sendNkro(buf[0], buf + 1);
             }
         } else {
-            uint8_t zero16[2] = {};
-            usbHid.sendReport(3, zero16, sizeof(zero16));
-            uint8_t zero33[33] = {};
-            usbHid.sendReport(1, zero33, sizeof(zero33));
+            hid.releaseConsumer();
+            hid.releaseKeyboard();
         }
     }
 #endif
 
-    // 6. Build NKRO + mouse HID reports via QMK engine
+    // 6. Build NKRO + mouse reports via QMK engine
     using NkroReport = QmkEngine<MATRIX_ROWS, MATRIX_COLS, LAYER_COUNT>::NkroReport;
 
     NkroReport report = {};
@@ -363,49 +371,25 @@ void loop() {
 
     engine.buildReport(report, mouse, consumer);
 
-    // 7. Send NKRO keyboard report (only on change)
-    //    report ID 1: [mods (1 byte)] + [bitmap (32 bytes)] = 33 bytes total
+    // 7. NKRO keyboard report — only on change
     static NkroReport prevReport = {};
-
     if (report != prevReport) {
         prevReport = report;
-
-        uint8_t buf[33];
-        buf[0] = report.mods;
-        memcpy(buf + 1, report.bitmap, 32);
-
-        while (!usbHid.ready()) { tud_task(); }
-        usbHid.sendReport(1, buf, sizeof(buf));
+        hid.sendNkro(report.mods, report.bitmap); // ← было sendKeyboard
     }
 
-    // 8. Send mouse report (ID 4) — always send so cursor/buttons release
-    //    [buttons(1), x(1), y(1), v(1), h(1)] = 5 bytes
+    // 8. Mouse report
     static MouseReport prevMouse = {};
-
     if (mouse != prevMouse) {
         prevMouse = mouse;
-        uint8_t mbuf[5] = {
-            mouse.buttons,
-            static_cast<uint8_t>(mouse.x),
-            static_cast<uint8_t>(mouse.y),
-            static_cast<uint8_t>(mouse.v),
-            static_cast<uint8_t>(mouse.h)
-        };
-        while (!usbHid.ready()) { tud_task(); }
-        usbHid.sendReport(4, mbuf, sizeof(mbuf));
+        hid.sendMouse(mouse.buttons, mouse.x, mouse.y, mouse.v, mouse.h); // ← теперь работает
     }
 
-    // 9. Send consumer report (report ID 3), only on change
+    // 9. Consumer report
     static uint16_t prevConsumer = 0;
     if (consumer != prevConsumer) {
         prevConsumer = consumer;
-        usbHid.sendReport(3, &consumer, sizeof(consumer));
+        if (consumer) hid.sendConsumer(consumer);
+        else hid.releaseConsumer();
     }
-
-#ifdef OLED_SSD1306_ENABLED
-    auto input = engine.getInputActivity(
-        encDelta, ENC_DETENT, encBtnSettled);
-    oled_task_kb(engine.highestActiveLayer(), input, &display);
-#endif
 }
-

@@ -1088,9 +1088,11 @@ public:
     //    • Emit hold_active TD resolved_kc while key held
     //    • Emit tap_emit_pending TD resolved_kc for exactly one cycle
     //
-    void handleBootMagick(const uint16_t kc) {
+    static void handleBootMagick(const uint16_t kc) {
         if (kc == QK_MAGIC_BOOTLOADER)
+#if defined(TARGET_SEEED_XIAO_NRF52840_SENSE) || defined(TARGET_SEEED_XIAO_NRF52840)
             enterUf2Dfu();
+#endif
     }
 
     void buildReport(NkroReport &out, MouseReport &out_mouse, uint16_t &out_consumer) {

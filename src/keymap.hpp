@@ -120,7 +120,7 @@ constexpr uint16_t PROGMEM keymaps[LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
     [KRITA] = LAYOUT( // Krita — цифровая живопись
         KC_B, KC_E, KC_P, // Brush / Eraser / Color Picker
         KC_T, KC_F, LCTL(KC_Z), // Move tool / Fill / Undo
-        TD(KRITA_LAYER_TAP_DANCE), MO(KRITA_ALT), LCTL(KC_S) // Save
+        TD(KRITA_LAYER_TAP_DANCE), MO(KRITA_ALT), LCTL(KC_Z) // Save
     ),
 
     [KRITA_ALT] = LAYOUT( // Второй слой Krita — работа со слоями
